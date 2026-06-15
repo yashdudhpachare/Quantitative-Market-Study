@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#070809" />
+<title>Quantitative Market Study — Customer Segmentation from Purchase Data</title>
+<meta name="description" content="A statistics case study: turning 7,665 cleaned purchase records into five customer segments — through exploratory analysis, hypothesis testing and K-Means clustering — then a marketing strategy for each." />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Quantitative Market Study — Customer Segmentation" />
+<meta property="og:description" content="From raw receipts to five segments and a strategy — a quantitative market study, told through the deck." />
+<meta property="og:image" content="public/og-cover.jpg" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" type="image/svg+xml" href='data:image/svg+xml;utf8,&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; viewBox=&quot;0 0 64 64&quot;&gt;&lt;rect width=&quot;64&quot; height=&quot;64&quot; rx=&quot;14&quot; fill=&quot;%23070809&quot;/&gt;&lt;text x=&quot;50%25&quot; y=&quot;60%25&quot; text-anchor=&quot;middle&quot; font-family=&quot;monospace&quot; font-weight=&quot;700&quot; font-size=&quot;30&quot; fill=&quot;%235BE1C9&quot;&gt;qm&lt;/text&gt;&lt;/svg&gt;' />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+<style>
+  :root{
+    --bg:#070809;
+    --bg-2:#0b0d11;
+    --bg-3:#141822;
+    --panel:#0f1218;
+    --panel-2:#141822;
+    --ink:#E9ECF1;
+    --ink-dim:#c4cad4;
+    --muted:#8b93a1;
+    --faint:#545c6a;
+    --line:#1b2029;
+    --line-2:#2a3140;
+    --accent:#5be1c9;
+    --accent-2:#9af0e0;
+    --accent-deep:#2f7c70;
+    --gold:#e8b54b;
+    --gold-2:#f0c96a;
+    --deep:#0a1411;
+
+    /* segment colours (hero number field + chips) */
+    --s0:#8b95a6; --s1:#5bc8a0; --s2:#e8b54b; --s3:#6aa6ff; --s4:#c98bdb;
+
+    --disp:"Space Grotesk",system-ui,sans-serif;
+    --body:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,monospace;
+
+    --maxw:1320px;
+    --gut:clamp(20px,4.5vw,72px);
+    --nav-h:62px;
+    --ease:cubic-bezier(.22,.61,.36,1);
+    --ease-out:cubic-bezier(.16,1,.3,1);
+    --r:10px;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
+  body{
+    font-family:var(--body); background:var(--bg); color:var(--ink);
+    font-size:17px; line-height:1.65; font-weight:400; overflow-x:hidden;
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  }
+  body::before{ /* grain */
+    content:""; position:fixed; inset:0; z-index:1; pointer-events:none; opacity:0.04; mix-blend-mode:screen;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  img,svg{ display:block; max-width:100%; }
+  a{ color:inherit; text-decoration:none; }
+  ::selection{ background:var(--accent); color:#f1f6f0; }
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:3px; border-radius:3px; }
+
+  .wrap{ max-width:var(--maxw); margin:0 auto; padding:0 var(--gut); }
+  .eyebrow{ font-family:var(--body); font-size:11px; font-weight:600; letter-spacing:0.28em; text-transform:uppercase; color:var(--accent); }
+  .seri{ display:inline-block; width:6px; height:6px; background:var(--gold); transform:rotate(45deg); }
+
+  /* ---------------- progress + nav ---------------- */
+  .bar-prog{ position:fixed; top:0; left:0; height:2px; width:0%; background:linear-gradient(90deg,var(--accent),#9af0e0); z-index:120; transition:width 80ms linear; box-shadow:0 0 12px rgba(91,225,201,.6); }
+  /* cursor glow */
+  .cursor-glow{ position:fixed; top:0; left:0; width:460px; height:460px; margin:-230px 0 0 -230px; border-radius:50%;
+    background:radial-gradient(circle, rgba(91,225,201,0.10) 0%, rgba(91,225,201,0.04) 30%, transparent 65%);
+    pointer-events:none; z-index:1; opacity:0; transition:opacity .4s var(--ease); will-change:transform; }
+  @media (hover:hover){ .cursor-glow.on{ opacity:1; } }
+  nav.top{
+    position:fixed; top:0; left:0; right:0; height:var(--nav-h); z-index:110;
+    display:flex; align-items:center; justify-content:space-between; gap:18px; padding:0 var(--gut);
+    transition:background .4s var(--ease), border-color .4s var(--ease), backdrop-filter .4s var(--ease);
+    border-bottom:1px solid transparent;
+  }
+  nav.top.solid{ background:rgba(7,8,9,0.82); backdrop-filter:blur(16px) saturate(140%); -webkit-backdrop-filter:blur(16px) saturate(140%); border-bottom-color:var(--line); }
+  .brand{ display:inline-flex; align-items:center; gap:9px; font-family:var(--disp); font-weight:700; font-size:18px; letter-spacing:-0.01em; }
+  .brand .mark{ width:18px; height:18px; flex:none; display:block; }
+  .brand .mark rect{ fill:var(--accent); }
+  .brand sup{ font-size:9px; color:var(--muted); font-weight:500; }
+  .acts-nav{ display:flex; align-items:center; gap:2px; padding:3px; border:1px solid var(--line); border-radius:999px; background:rgba(20,24,30,0.5); }
+  .acts-nav a{ position:relative; display:inline-flex; align-items:center; font-size:12.5px; font-weight:600; letter-spacing:0.01em; color:var(--ink-dim); padding:7px 13px; border-radius:999px; transition:color .25s, background .25s; }
+  .acts-nav a .rn{ color:var(--accent); font-family:var(--disp); font-weight:700; font-size:11px; margin-right:7px; opacity:.65; transition:color .25s, opacity .25s; }
+  .acts-nav a:hover{ color:var(--ink); background:var(--bg-3); }
+  .acts-nav a.on{ color:var(--bg); background:var(--accent); box-shadow:0 6px 18px -8px rgba(91,225,201,0.7); }
+  .acts-nav a.on .rn{ color:var(--bg); opacity:1; }
+  @media (max-width:1080px){
+    .acts-nav a .nm{ display:none; }
+    .acts-nav a .rn{ margin-right:0; font-size:12px; }
+    .acts-nav a{ padding:7px 11px; }
+  }
+  .nav-deck{ display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:600; letter-spacing:0.02em; color:var(--bg); background:var(--accent); padding:9px 15px; border-radius:999px; transition:background .25s, transform .25s; cursor:pointer; border:0; font-family:var(--body); }
+  .nav-deck:hover{ background:var(--accent-2); transform:translateY(-1px); }
+  @media (max-width:560px){ .nav-deck .t{ display:none; } .brand sup{ display:none; } .acts-nav{ gap:0; } .acts-nav a{ padding:6px 9px; } }
+  @media (max-width:380px){ .acts-nav a{ padding:6px 7px; } .acts-nav a .rn{ font-size:11px; } }
+
+  /* ---------------- hero (interactive number field) ---------------- */
+  .mono{ font-family:var(--mono); font-size:11px; letter-spacing:0.16em; text-transform:uppercase; }
+  .hero{ position:relative; min-height:92svh; display:flex; align-items:center; overflow:hidden; isolation:isolate; }
+  #numField{ position:absolute; inset:0; width:100%; height:100%; z-index:0; }
+  .hero-vignette{ position:absolute; inset:0; z-index:1; pointer-events:none;
+    background:
+      radial-gradient(80% 70% at 28% 52%, rgba(7,8,9,0.72) 0%, rgba(7,8,9,0.30) 45%, transparent 72%),
+      linear-gradient(180deg, rgba(7,8,9,0.7) 0%, transparent 24%, transparent 70%, rgba(7,8,9,0.95) 100%); }
+  .hero-inner{ position:relative; z-index:3; width:100%; }
+  .hero-eyebrow{ color:var(--accent); display:inline-flex; align-items:center; gap:10px; margin-bottom:26px; }
+  .hero-eyebrow::before{ content:""; width:28px; height:1px; background:var(--accent); box-shadow:0 0 8px var(--accent); }
+  .hero h1{ font-family:var(--disp); font-weight:600; letter-spacing:-0.03em; line-height:1.06; font-size:clamp(33px,5.4vw,72px); margin:0; max-width:20ch; }
+  .hero h1 .grad{ background:linear-gradient(120deg,#fff 10%, var(--accent) 90%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .hero-sub{ margin:28px 0 0; max-width:58ch; color:#c4cad4; font-size:clamp(15px,1.4vw,19px); line-height:1.6; }
+  .hero-sub b{ color:#fff; font-weight:500; }
+  .hero-foot{ position:absolute; left:var(--gut); right:var(--gut); bottom:26px; z-index:3;
+    display:flex; justify-content:space-between; align-items:end; gap:16px; flex-wrap:wrap;
+    font-family:var(--mono); font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:var(--faint); }
+  .hero-hint{ display:inline-flex; align-items:center; gap:8px; color:var(--muted); }
+  .hero-hint .dot{ width:6px; height:6px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--accent); animation:pulse 1.8s infinite; }
+  @keyframes pulse{ 0%,100%{ opacity:.35; transform:scale(.8);} 50%{ opacity:1; transform:scale(1);} }
+
+  /* floating interactive stat chips */
+  .chips{ position:absolute; inset:0; z-index:2; pointer-events:none; }
+  .chip{ position:absolute; pointer-events:auto; cursor:default; font-family:var(--mono); transform:translate(-50%,-50%);
+    display:inline-flex; flex-direction:column; align-items:flex-start; gap:2px; padding:9px 13px; border:1px solid var(--line-2); border-radius:10px;
+    background:rgba(12,15,20,0.55); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    transition:transform .3s var(--ease), border-color .3s, background .3s, box-shadow .3s; will-change:transform; }
+  .chip .v{ font-size:17px; font-weight:700; color:var(--ink); letter-spacing:0.01em; line-height:1; }
+  .chip .l{ font-size:9px; letter-spacing:0.16em; text-transform:uppercase; color:var(--faint); max-width:0; overflow:hidden; white-space:nowrap; opacity:0; transition:max-width .4s var(--ease), opacity .3s; }
+  .chip:hover{ border-color:var(--accent); background:rgba(12,18,22,0.9); box-shadow:0 10px 40px rgba(0,0,0,.5), 0 0 0 1px rgba(91,225,201,.25); z-index:5; }
+  .chip:hover .v{ color:var(--accent); }
+  .chip:hover .l{ max-width:240px; opacity:1; }
+  .chip.s2 .v{ color:var(--s2); } .chip.s2:hover{ border-color:var(--s2); box-shadow:0 10px 40px rgba(0,0,0,.5), 0 0 0 1px rgba(232,181,75,.3); } .chip.s2:hover .v{ color:var(--s2); }
+  .chip.s3 .v{ color:var(--s3); } .chip.s3:hover{ border-color:var(--s3); box-shadow:0 10px 40px rgba(0,0,0,.5), 0 0 0 1px rgba(106,166,255,.3); } .chip.s3:hover .v{ color:var(--s3); }
+  .chip.s4 .v{ color:var(--s4); } .chip.s4:hover{ border-color:var(--s4); box-shadow:0 10px 40px rgba(0,0,0,.5), 0 0 0 1px rgba(201,139,219,.3); } .chip.s4:hover .v{ color:var(--s4); }
+  @media (max-width:760px){ .chips{ display:none; } }
+  @media (max-width:760px){ .hero{ min-height:auto; padding:118px 0 90px; } .hero-foot{ position:static; margin-top:34px; padding:0 var(--gut); } }
+
+  /* ---------------- ticker ---------------- */
+  .ticker{ border-top:1px solid var(--line); border-bottom:1px solid var(--line); background:var(--bg-2); overflow:hidden; position:relative; }
+  .ticker-track{ display:flex; gap:0; width:max-content; animation:marquee 38s linear infinite; }
+  .ticker:hover .ticker-track{ animation-play-state:paused; }
+  .ticker-item{ font-family:var(--mono); font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); padding:14px 26px; white-space:nowrap; display:inline-flex; align-items:center; gap:12px; }
+  .ticker-item b{ color:var(--accent); font-weight:600; }
+  .ticker-item::after{ content:"✦"; color:var(--line-2); margin-left:14px; font-size:9px; }
+  @keyframes marquee{ to{ transform:translateX(-50%); } }
+  @media (prefers-reduced-motion:reduce){ .ticker-track{ animation:none; } }
+
+  /* ---------------- contents ---------------- */
+  .contents{ padding:clamp(64px,9vw,120px) 0; }
+  .contents-banner{ position:relative; border-radius:calc(var(--r) + 4px); overflow:hidden; min-height:clamp(380px,52vw,580px); display:flex; align-items:center; border:1px solid var(--line); margin:0 var(--gut); }
+  .contents-banner > img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center right; }
+  .cb-grad{ position:absolute; inset:0; pointer-events:none;
+    background:
+      linear-gradient(90deg, var(--bg) 4%, rgba(7,8,9,0.88) 28%, rgba(7,8,9,0.45) 52%, rgba(7,8,9,0.05) 80%),
+      linear-gradient(0deg, rgba(7,8,9,0.6) 0%, transparent 30%, transparent 70%, rgba(7,8,9,0.5) 100%); }
+  .cb-inner{ position:relative; z-index:2; width:100%; }
+  .cb-inner .sec-label{ margin-bottom:26px; }
+  .cb-lead{ font-family:var(--disp); font-weight:600; font-size:clamp(28px,4vw,52px); line-height:1.1; letter-spacing:-0.025em; max-width:18ch; color:var(--ink); text-wrap:balance; }
+  .cb-lead em{ font-style:normal; color:var(--accent); }
+  .cb-note{ margin-top:clamp(26px,3.6vw,52px); max-width:52ch; color:var(--ink-dim); font-size:clamp(15px,1.4vw,18px); line-height:1.55; }
+  @media (max-width:760px){ .contents-banner{ margin:0 var(--gut); align-items:flex-end; min-height:clamp(420px,90vw,560px); } .cb-inner{ padding-bottom:30px; } .cb-grad{ background:linear-gradient(0deg, var(--bg) 6%, rgba(7,8,9,0.72) 34%, rgba(7,8,9,0.30) 64%, rgba(7,8,9,0.55) 100%); } }
+  .sec-label{ display:flex; align-items:center; gap:14px; font-size:11px; letter-spacing:0.22em; text-transform:uppercase; color:var(--muted); margin-bottom:34px; }
+  .sec-label::after{ content:""; flex:1; height:1px; background:var(--line); }
+  .contents .lead{ font-family:var(--disp); font-weight:500; font-size:clamp(26px,3.6vw,46px); line-height:1.18; letter-spacing:-0.02em; max-width:20ch; }
+  .contents .lead em{ font-style:normal; color:var(--accent); }
+  .contents .note{ margin-top:22px; max-width:54ch; color:var(--ink-dim); }
+  .toc{ margin-top:clamp(40px,5vw,66px); border-top:1px solid var(--line); }
+  .toc a{ display:grid; grid-template-columns:80px 1fr auto; gap:20px; align-items:center; padding:24px 6px; border-bottom:1px solid var(--line); transition:padding-left .3s var(--ease), background .3s; }
+  .toc a:hover{ padding-left:18px; background:linear-gradient(90deg, rgba(15,110,95,0.06), transparent 60%); }
+  .toc .rn{ font-family:var(--disp); font-weight:600; font-size:clamp(22px,2.6vw,32px); color:var(--accent); }
+  .toc .tt{ font-family:var(--disp); font-weight:500; font-size:clamp(19px,2.2vw,26px); letter-spacing:-0.01em; }
+  .toc .tt span{ display:block; font-family:var(--body); font-weight:400; font-size:14px; color:var(--muted); letter-spacing:0; margin-top:4px; }
+  .toc .cnt{ font-size:12px; letter-spacing:0.06em; color:var(--muted); white-space:nowrap; }
+  .toc a:hover .cnt{ color:var(--accent); }
+  @media (max-width:600px){ .toc a{ grid-template-columns:54px 1fr; } .toc .cnt{ grid-column:2; } }
+
+  /* ---------------- act ---------------- */
+  .act{ position:relative; padding:clamp(66px,9vw,140px) 0; border-top:1px solid var(--line); }
+  .act-open{ display:grid; grid-template-columns:1.05fr 1fr; gap:clamp(26px,5vw,80px); align-items:end; margin-bottom:clamp(40px,5.5vw,80px); }
+  .act-open .lead{ font-size:clamp(17px,1.6vw,21px); line-height:1.55; color:var(--ink-dim); max-width:50ch; }
+  .act-open .lead b{ color:var(--ink); font-weight:600; }
+  .act-num{ font-family:var(--disp); font-weight:700; font-size:clamp(64px,11vw,150px); line-height:0.78; letter-spacing:-0.05em; color:transparent; -webkit-text-stroke:1.5px var(--accent-deep); }
+  .act-kick{ display:inline-flex; align-items:center; gap:10px; margin:22px 0 0; font-size:11px; letter-spacing:0.2em; text-transform:uppercase; color:var(--accent); font-weight:600; }
+  .act-kick .seri{ width:5px; height:5px; }
+  .act-open h2{ font-family:var(--disp); font-weight:500; font-size:clamp(30px,4.6vw,60px); line-height:1.02; letter-spacing:-0.03em; margin-top:14px; max-width:18ch; }
+  .act-open h2 em{ font-style:normal; color:var(--accent); }
+  @media (max-width:880px){ .act-open{ grid-template-columns:1fr; gap:26px; align-items:start; } }
+
+  /* story flow */
+  .story{ display:flex; flex-direction:column; gap:clamp(26px,3.4vw,52px); }
+  .pair{ display:grid; grid-template-columns:1fr 1fr; gap:clamp(16px,2vw,28px); }
+  @media (max-width:760px){ .pair{ grid-template-columns:1fr; } }
+
+  /* pull-note */
+  .note{ max-width:74ch; margin:0 auto; padding-left:clamp(20px,2.4vw,34px); border-left:3px solid var(--gold); }
+  .note p{ font-family:var(--disp); font-weight:400; font-size:clamp(21px,2.5vw,33px); line-height:1.3; letter-spacing:-0.015em; color:var(--ink); }
+  .note p b{ font-weight:600; color:var(--accent); }
+
+  /* insight cards */
+  .insights{ display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(12px,1.6vw,20px); }
+  .insight{ background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:clamp(22px,2.4vw,32px); }
+  .insight .n{ font-family:var(--disp); font-weight:700; font-size:clamp(26px,3vw,40px); color:var(--gold); line-height:1; }
+  .insight p{ margin-top:14px; font-size:clamp(15px,1.4vw,17px); color:var(--ink-dim); line-height:1.45; }
+  .insight p b{ color:var(--ink); font-weight:600; }
+  @media (max-width:760px){ .insights{ grid-template-columns:1fr; } }
+
+  /* figure (slide plate) */
+  figure.fig{ position:relative; background:var(--panel); border:1px solid var(--line); border-radius:var(--r); overflow:hidden; box-shadow:0 28px 56px -40px rgba(0,0,0,0.7); transition:border-color .3s var(--ease), transform .35s var(--ease), box-shadow .35s var(--ease); }
+  figure.fig.zoom{ cursor:zoom-in; }
+  figure.fig:hover{ border-color:var(--accent); transform:translateY(-5px); box-shadow:0 38px 70px -36px rgba(0,0,0,0.8); }
+  figure.fig .pi{ overflow:hidden; background:var(--bg-3); display:block; }
+  figure.fig img{ width:100%; display:block; }
+  figure.fig figcaption{ display:flex; align-items:center; gap:14px; padding:15px clamp(16px,1.8vw,24px); border-top:1px solid var(--line); }
+  figcaption .pn{ font-family:var(--disp); font-weight:700; font-size:13px; color:var(--accent); flex:none; }
+  figcaption .pc{ font-size:clamp(14px,1.4vw,16px); color:var(--ink-dim); }
+  figcaption .pz{ margin-left:auto; color:var(--faint); font-size:16px; flex:none; transition:color .25s; }
+  figure.fig:hover .pz{ color:var(--accent); }
+  figure.fig.key{ border-color:var(--accent); }
+  figure.fig.key::before{ content:"Key moment"; position:absolute; z-index:3; top:14px; left:14px; font-size:10px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--bg); background:var(--accent); padding:6px 11px; border-radius:999px; box-shadow:0 6px 18px -8px rgba(91,225,201,0.7); }
+  figure.fig.key figcaption .pn{ color:var(--accent); }
+
+  /* ---------------- statement break ---------------- */
+  .statement{ position:relative; padding:clamp(80px,13vw,180px) 0; background:var(--deep); color:#eef1ea; overflow:hidden; }
+  .statement::after{ content:""; position:absolute; inset:0; background:radial-gradient(120% 120% at 80% 0%, rgba(15,110,95,0.28), transparent 55%); pointer-events:none; }
+  .statement .inner{ position:relative; z-index:2; }
+  .statement .sk{ font-size:11px; letter-spacing:0.24em; text-transform:uppercase; color:var(--gold-2); margin-bottom:26px; display:flex; align-items:center; gap:12px; }
+  .statement .sk .seri{ background:var(--gold-2); }
+  .statement h2{ font-family:var(--disp); font-weight:600; font-size:clamp(32px,6.4vw,86px); line-height:1.0; letter-spacing:-0.035em; max-width:16ch; color:#f3f6ef; }
+  .statement h2 em{ font-style:normal; color:var(--gold-2); }
+  .statement .sline{ margin-top:30px; max-width:52ch; color:rgba(243,246,239,0.75); font-size:clamp(16px,1.6vw,20px); }
+
+  /* ---------------- outcome ---------------- */
+  .outcome{ padding:clamp(64px,9vw,120px) 0; border-top:1px solid var(--line); }
+  .outcome h2{ font-family:var(--disp); font-weight:500; font-size:clamp(30px,4.6vw,58px); line-height:1.02; letter-spacing:-0.025em; max-width:18ch; }
+  .outcome h2 em{ font-style:normal; color:var(--accent); }
+  .outcome .ol{ margin-top:22px; max-width:56ch; color:var(--ink-dim); }
+  .metrics{ margin-top:clamp(44px,6vw,72px); display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--r); overflow:hidden; }
+  .metrics .m{ background:var(--bg-2); padding:clamp(26px,3vw,40px) clamp(18px,2.2vw,28px); }
+  .metrics .mv{ font-family:var(--disp); font-weight:600; font-size:clamp(30px,4vw,50px); letter-spacing:-0.03em; color:var(--accent); line-height:1; }
+  .metrics .ml{ margin-top:14px; font-size:13.5px; color:var(--ink-dim); line-height:1.4; }
+  @media (max-width:760px){ .metrics{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:430px){ .metrics{ grid-template-columns:1fr; } }
+  .nexts{ margin-top:clamp(34px,4vw,54px); display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  .nx{ border:1px solid var(--line); border-radius:var(--r); padding:24px; background:var(--panel); }
+  .nx .nxn{ font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; color:var(--accent); }
+  .nx h4{ font-family:var(--disp); font-weight:500; font-size:19px; margin:12px 0 8px; }
+  .nx p{ font-size:14px; color:var(--muted); }
+  @media (max-width:760px){ .nexts{ grid-template-columns:1fr; } }
+  .signals .nx{ padding:0; overflow:hidden; display:flex; flex-direction:column; transition:border-color .3s var(--ease), transform .35s var(--ease); }
+  .signals .nx:hover{ border-color:var(--accent); transform:translateY(-4px); }
+  .nx-art{ display:block; width:100%; aspect-ratio:16/9; object-fit:cover; border-bottom:1px solid var(--line); background:var(--bg); }
+  .nx-body{ padding:22px clamp(18px,2vw,24px) 26px; }
+
+  /* ---------------- full-deck CTA ---------------- */
+  .deckcta{ padding:clamp(56px,8vw,110px) 0; border-top:1px solid var(--line); }
+  .deckcta-card{ display:grid; grid-template-columns:1fr auto; gap:clamp(24px,4vw,56px); align-items:center; background:linear-gradient(135deg,var(--panel-2),var(--bg-2)); border:1px solid var(--line-2); color:#eef1ea; border-radius:calc(var(--r) + 4px); padding:clamp(32px,5vw,64px); position:relative; overflow:hidden; }
+  .deckcta-card::after{ content:""; position:absolute; right:-60px; top:-60px; width:260px; height:260px; border-radius:50%; background:radial-gradient(circle, rgba(223,174,58,0.18), transparent 70%); }
+  .deckcta-card .sec-label{ color:var(--gold-2); }
+  .deckcta-card .sec-label::after{ background:rgba(243,246,239,0.2); }
+  .deckcta-card h2{ font-family:var(--disp); font-weight:600; font-size:clamp(28px,4vw,52px); letter-spacing:-0.03em; line-height:1.02; color:#f3f6ef; }
+  .deckcta-card h2 em{ font-style:normal; color:var(--gold-2); }
+  .deckcta-card p{ margin-top:16px; max-width:46ch; color:rgba(243,246,239,0.78); font-size:clamp(15px,1.5vw,18px); }
+  .deckcta-btn{ position:relative; z-index:2; display:inline-flex; align-items:center; gap:12px; white-space:nowrap; font-family:var(--disp); font-weight:600; font-size:clamp(15px,1.6vw,19px); color:var(--deep); background:var(--gold-2); padding:18px 28px; border-radius:999px; transition:transform .25s var(--ease), background .25s; }
+  .deckcta-btn span{ transition:transform .25s var(--ease); }
+  .deckcta-btn:hover{ background:#f0cf86; transform:translateY(-2px); }
+  .deckcta-btn:hover span{ transform:translate(3px,-3px); }
+  @media (max-width:760px){ .deckcta-card{ grid-template-columns:1fr; align-items:start; } }
+
+  /* ---------------- footer ---------------- */
+  footer{ border-top:1px solid var(--line); padding:clamp(48px,6vw,80px) 0 60px; }
+  .foot-grid{ display:flex; flex-wrap:wrap; gap:24px; justify-content:space-between; align-items:center; }
+  .foot-brand{ font-family:var(--disp); font-weight:700; font-size:26px; display:inline-flex; align-items:center; gap:10px; }
+  .foot-brand .mark{ width:24px; height:24px; flex:none; display:block; }
+  .foot-brand .mark rect{ fill:var(--accent); }
+  .foot-act{ display:inline-flex; align-items:center; gap:9px; font-size:12px; letter-spacing:0.04em; color:var(--ink); border:1px solid var(--line-2); border-radius:999px; padding:11px 18px; transition:background .25s, color .25s; }
+  .foot-act:hover{ background:var(--accent); color:var(--bg); border-color:var(--accent); }
+  .foot-meta{ margin-top:36px; font-size:12px; letter-spacing:0.04em; color:var(--faint); line-height:1.8; }
+
+  /* ---------------- lightbox ---------------- */
+  .lb{ position:fixed; inset:0; z-index:200; background:rgba(8,12,11,0.97); display:none; flex-direction:column; }
+  .lb.open{ display:flex; }
+  .lb-top{ display:flex; align-items:center; justify-content:space-between; padding:18px var(--gut); color:rgba(238,241,234,0.7); }
+  .lb-top .c{ font-family:var(--disp); font-weight:600; font-size:13px; letter-spacing:0.1em; }
+  .lb-x{ width:42px; height:42px; border-radius:50%; border:1px solid rgba(238,241,234,0.28); background:none; color:#eef1ea; font-size:18px; cursor:pointer; transition:background .25s, transform .25s, color .25s; }
+  .lb-x:hover{ background:var(--accent); color:var(--bg); transform:rotate(90deg); }
+  .lb-stage{ flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:0 clamp(12px,5vw,70px); position:relative; }
+  .lb-stage img{ max-width:100%; max-height:100%; object-fit:contain; border-radius:6px; box-shadow:0 30px 90px rgba(0,0,0,0.7); transition:opacity .2s; background:#fff; }
+  .lb-nav{ position:absolute; top:50%; transform:translateY(-50%); width:50px; height:50px; border-radius:50%; border:1px solid rgba(238,241,234,0.28); background:rgba(20,24,22,0.5); color:#eef1ea; font-size:22px; cursor:pointer; transition:background .25s, color .25s; }
+  .lb-nav:hover{ background:var(--accent); color:var(--bg); }
+  .lb-prev{ left:max(10px,2vw); } .lb-next{ right:max(10px,2vw); }
+  .lb-cap{ padding:16px var(--gut) 22px; text-align:center; color:rgba(238,241,234,0.82); font-size:14px; min-height:1.5em; }
+
+  /* reveal */
+  .rv{ opacity:0; transform:translateY(26px); transition:opacity .8s var(--ease-out), transform .8s var(--ease-out); }
+  .rv.in{ opacity:1; transform:none; }
+  .rv[data-d="1"]{ transition-delay:.08s; } .rv[data-d="2"]{ transition-delay:.16s; } .rv[data-d="3"]{ transition-delay:.24s; }
+  @media (prefers-reduced-motion:reduce){ .rv{ opacity:1!important; transform:none!important; } html{ scroll-behavior:auto; } }
+</style>
+</head>
+<body>
+  <div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
+  <div class="bar-prog" id="prog"></div>
+
+  <nav class="top" id="nav">
+    <a class="brand" href="#top"><svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="13" width="4.5" height="8" rx="1"/><rect x="9.75" y="8" width="4.5" height="13" rx="1"/><rect x="16.5" y="3" width="4.5" height="18" rx="1"/></svg>QM&nbsp;Study<sup>®</sup></a>
+    <div class="acts-nav" id="actsNav">
+      <a href="#act1" data-act="act1" aria-label="The data"><span class="rn">I</span><span class="nm">Data</span></a>
+      <a href="#act2" data-act="act2" aria-label="Patterns"><span class="rn">II</span><span class="nm">Patterns</span></a>
+      <a href="#act3" data-act="act3" aria-label="Evidence"><span class="rn">III</span><span class="nm">Evidence</span></a>
+      <a href="#act4" data-act="act4" aria-label="Segments"><span class="rn">IV</span><span class="nm">Segments</span></a>
+      <a href="#act5" data-act="act5" aria-label="Strategy"><span class="rn">V</span><span class="nm">Strategy</span></a>
+    </div>
+    <a class="nav-deck" href="deck.html"><span class="t">Full deck</span> ↗</a>
+  </nav>
+
+  <main>
+    <!-- ============ HERO ============ -->
+    <header class="hero" id="top">
+      <canvas id="numField" aria-hidden="true"></canvas>
+      <div class="hero-vignette" aria-hidden="true"></div>
+      <div class="chips" id="chips" aria-hidden="false"></div>
+      <div class="hero-inner wrap">
+        <div class="hero-eyebrow mono">Quantitative Market Study · 2024</div>
+        <h1>Every purchase is a number.<br><span class="grad">We read 7,665 of them.</span></h1>
+        <p class="hero-sub">A statistics project that turns cleaned purchase data into <b>five customer segments</b> — through exploratory analysis, hypothesis testing and <b>K-Means clustering</b> — then writes a marketing strategy for each. <span style="color:var(--faint)">Move your cursor through the field.</span></p>
+      </div>
+      <div class="hero-foot">
+        <span class="hero-hint"><span class="dot"></span> Hover the numbers</span>
+        <span>EDA · HYPOTHESIS TESTING · K-MEANS · SEGMENTATION</span>
+      </div>
+    </header>
+
+    <!-- ============ TICKER ============ -->
+    <div class="ticker" aria-hidden="true"><div class="ticker-track" id="ticker"></div></div>
+
+    <!-- ============ CONTENTS ============ -->
+    <section class="contents" id="contents">
+      <div class="contents-banner rv">
+        <img src="public/contents-banner.png" alt="Receipts dissolving into streams of numbers that gather into glowing customer segments" loading="lazy" />
+        <div class="cb-grad" aria-hidden="true"></div>
+        <div class="wrap cb-inner">
+          <div class="sec-label">The study, in five acts</div>
+          <p class="cb-lead" data-d="1">From raw receipts to a marketing plan — <em>defended with statistics</em>, not intuition.</p>
+          <p class="cb-note" data-d="2">The deck runs 34 slides. Below, it's told as a narrative — every chart opens full-screen, and the complete deck is one click away.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ACT I ============ -->
+    <section class="act" id="act1">
+      <div class="wrap">
+        <div class="act-open">
+          <div>
+            <div class="act-num rv">I</div>
+            <div class="act-kick rv" data-d="1"><span class="seri"></span> 01 · Collect &amp; clean</div>
+            <h2 class="rv" data-d="1">We didn't ask the customers. <em>We read their receipts.</em></h2>
+          </div>
+          <p class="lead rv" data-d="2">The brief was targeted marketing built on evidence. It begins with raw purchase records — price, quantity, age, gender, geography — and the unglamorous work of turning them into something trustworthy.</p>
+        </div>
+        <div class="story">
+          <figure class="fig zoom rv" data-i="3"><div class="pi"><img src="public/decks/quant-market-study/004.jpg" loading="lazy" alt="Customer data collection"></div><figcaption><span class="pn">04</span><span class="pc">Customer data collection — the raw fields</span><span class="pz">⤢</span></figcaption></figure>
+          <div class="note rv"><p>Raw, the set held <b>7,865 orders</b>. After trimming extreme outliers, <b>7,665</b> remained — a clean core every later test could trust.</p></div>
+          <figure class="fig zoom key rv" data-i="5"><div class="pi"><img src="public/decks/quant-market-study/006.jpg" loading="lazy" alt="Price distribution before and after cleaning"></div><figcaption><span class="pn">06</span><span class="pc">Price distribution — before &amp; after outlier removal</span><span class="pz">⤢</span></figcaption></figure>
+          <div class="insights rv">
+            <div class="insight"><div class="n">7,665</div><p>orders survived cleaning — the <b>analysis base</b> for everything that follows.</p></div>
+            <div class="insight"><div class="n">~200</div><p>extreme outliers <b>removed</b>, so a handful of orders couldn't distort the means.</p></div>
+            <div class="insight"><div class="n">6</div><p>fields per order — <b>price, quantity, age, gender, state, city</b>.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ACT II ============ -->
+    <section class="act" id="act2">
+      <div class="wrap">
+        <div class="act-open">
+          <div>
+            <div class="act-num rv">II</div>
+            <div class="act-kick rv" data-d="1"><span class="seri"></span> 02 · Explore</div>
+            <h2 class="rv" data-d="1">What the purchases were <em>quietly saying</em></h2>
+          </div>
+          <p class="lead rv" data-d="2">Before any test, the data was made to speak in pictures — counts, prices, correlations, seasonality and age. A few signals showed up again and again.</p>
+        </div>
+        <div class="story">
+          <figure class="fig zoom rv" data-i="4"><div class="pi"><img src="public/decks/quant-market-study/005.jpg" loading="lazy" alt="Purchases by category"></div><figcaption><span class="pn">05</span><span class="pc">Purchases by category — where the orders are</span><span class="pz">⤢</span></figcaption></figure>
+          <div class="pair">
+            <figure class="fig zoom rv" data-i="10"><div class="pi"><img src="public/decks/quant-market-study/011.jpg" loading="lazy" alt="Average and total spend by category"></div><figcaption><span class="pn">11</span><span class="pc">Average &amp; total spend by category</span><span class="pz">⤢</span></figcaption></figure>
+            <figure class="fig zoom rv" data-d="1" data-i="9"><div class="pi"><img src="public/decks/quant-market-study/010.jpg" loading="lazy" alt="Total orders by month"></div><figcaption><span class="pn">10</span><span class="pc">Total orders by month — a July peak</span><span class="pz">⤢</span></figcaption></figure>
+          </div>
+          <div class="note rv"><p>Two reads jump out: <b>Daily Essentials and Fashion</b> are over half of all orders — and <b>Electronics</b> sells least often yet carries the biggest basket.</p></div>
+          <figure class="fig zoom key rv" data-i="6"><div class="pi"><img src="public/decks/quant-market-study/007.jpg" loading="lazy" alt="Correlation matrix heatmap"></div><figcaption><span class="pn">07</span><span class="pc">Correlation matrix — what actually moves revenue</span><span class="pz">⤢</span></figcaption></figure>
+          <div class="note rv"><p>Total Owed tracks <b>Unit Price at r = 0.98</b>. Quantity and age barely register — price, not volume, drives the total.</p></div>
+          <div class="pair">
+            <figure class="fig zoom rv" data-i="11"><div class="pi"><img src="public/decks/quant-market-study/012.jpg" loading="lazy" alt="Spend and quantity by age"></div><figcaption><span class="pn">12</span><span class="pc">Spend &amp; quantity by age</span><span class="pz">⤢</span></figcaption></figure>
+            <figure class="fig zoom rv" data-d="1" data-i="12"><div class="pi"><img src="public/decks/quant-market-study/013.jpg" loading="lazy" alt="Orders by age group"></div><figcaption><span class="pn">13</span><span class="pc">Orders by age group — a narrow base</span><span class="pz">⤢</span></figcaption></figure>
+          </div>
+          <div class="insights rv">
+            <div class="insight"><div class="n">0.98</div><p>correlation between <b>unit price and revenue</b> — quantity and age are near zero.</p></div>
+            <div class="insight"><div class="n">July</div><p>is the demand <b>peak</b>; February the floor — a clear seasonal rhythm.</p></div>
+            <div class="insight"><div class="n">18–34</div><p>is almost the entire sample — a <b>sampling fingerprint</b>, not a market truth.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ STATEMENT ============ -->
+    <section class="statement">
+      <div class="wrap inner">
+        <div class="sk rv"><span class="seri"></span> The turn</div>
+        <h2 class="rv" data-d="1">A chart can suggest. <em>Only a test can decide.</em></h2>
+        <p class="sline rv" data-d="2">Four hypothesis tests separate the patterns that are real from the ones the eye invents — is this difference genuine, or just what we wanted to see?</p>
+      </div>
+    </section>
+
+    <!-- ============ ACT III ============ -->
+    <section class="act" id="act3">
+      <div class="wrap">
+        <div class="act-open">
+          <div>
+            <div class="act-num rv">III</div>
+            <div class="act-kick rv" data-d="1"><span class="seri"></span> 03 · Test</div>
+            <h2 class="rv" data-d="1">Where the eye ends, <em>the test begins</em></h2>
+          </div>
+          <p class="lead rv" data-d="2">Welch's t-test, Chi-Square, Pearson correlation and a power check — each asking a sharper question than a chart can, across all 7,665 cleaned orders.</p>
+        </div>
+        <div class="story">
+          <figure class="fig zoom rv" data-i="13"><div class="pi"><img src="public/decks/quant-market-study/014.jpg" loading="lazy" alt="Statistical tools — t-test and chi-square"></div><figcaption><span class="pn">14</span><span class="pc">The toolkit — Welch t-test &amp; Chi-Square</span><span class="pz">⤢</span></figcaption></figure>
+          <figure class="fig zoom key rv" data-i="17"><div class="pi"><img src="public/decks/quant-market-study/018.jpg" loading="lazy" alt="Orders and spending by gender"></div><figcaption><span class="pn">18</span><span class="pc">Orders &amp; spending across gender</span><span class="pz">⤢</span></figcaption></figure>
+          <div class="note rv"><p>Men spend significantly more than women (<b>p = 7.6e⁻¹¹</b>) and place roughly <b>2.4× the orders</b>; a Chi-Square test confirms order quantity and gender are linked (χ² = 34.2).</p></div>
+          <div class="pair">
+            <figure class="fig zoom rv" data-i="14"><div class="pi"><img src="public/decks/quant-market-study/015.jpg" loading="lazy" alt="Test results — gender spending"></div><figcaption><span class="pn">15</span><span class="pc">Results — spending across gender</span><span class="pz">⤢</span></figcaption></figure>
+            <figure class="fig zoom rv" data-d="1" data-i="16"><div class="pi"><img src="public/decks/quant-market-study/017.jpg" loading="lazy" alt="Test results — correlation and clusters"></div><figcaption><span class="pn">17</span><span class="pc">Results — correlation &amp; clusters</span><span class="pz">⤢</span></figcaption></figure>
+          </div>
+          <figure class="fig zoom rv" data-i="15"><div class="pi"><img src="public/decks/quant-market-study/016.jpg" loading="lazy" alt="Statistical tools — Pearson and power"></div><figcaption><span class="pn">16</span><span class="pc">The toolkit — Pearson correlation &amp; statistical power</span><span class="pz">⤢</span></figcaption></figure>
+          <div class="note rv"><p>Age does <b>not</b> predict spend (r ≈ 0). And with n in the thousands, statistical power ≈ <b>1.0</b> — we can trust the misses as much as the hits.</p></div>
+          <div class="pair">
+            <figure class="fig zoom rv" data-i="18"><div class="pi"><img src="public/decks/quant-market-study/019.jpg" loading="lazy" alt="Average total owed by state"></div><figcaption><span class="pn">19</span><span class="pc">Average total owed by state</span><span class="pz">⤢</span></figcaption></figure>
+            <figure class="fig zoom rv" data-d="1" data-i="19"><div class="pi"><img src="public/decks/quant-market-study/020.jpg" loading="lazy" alt="Average spend by state"></div><figcaption><span class="pn">20</span><span class="pc">Average spend by state — Sikkim &amp; Chhattisgarh lead</span><span class="pz">⤢</span></figcaption></figure>
+          </div>
+          <div class="insights rv">
+            <div class="insight"><div class="n">7.6e⁻¹¹</div><p>p-value on gender spend — <b>significant</b>, well past any threshold.</p></div>
+            <div class="insight"><div class="n">2.4×</div><p>more orders from men than women — volume, not just <b>basket size</b>.</p></div>
+            <div class="insight"><div class="n">r ≈ 0</div><p>age vs. spend — a confident <b>null result</b>, backed by full power.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ACT IV ============ -->
+    <section class="act" id="act4">
+      <div class="wrap">
+        <div class="act-open">
+          <div>
+            <div class="act-num rv">IV</div>
+            <div class="act-kick rv" data-d="1"><span class="seri"></span> 04 · Cluster</div>
+            <h2 class="rv" data-d="1">Five customers hiding in <em>one dataset</em></h2>
+          </div>
+          <p class="lead rv" data-d="2">Orders were sorted into price tiers, then clustered on spend, quantity and age with K-Means. The elbow method picked the number of groups; the groups picked themselves.</p>
+        </div>
+        <div class="story">
+          <figure class="fig zoom rv" data-i="20"><div class="pi"><img src="public/decks/quant-market-study/021.jpg" loading="lazy" alt="Price tiers — cheap, normal, premium"></div><figcaption><span class="pn">21</span><span class="pc">Price tiers — cheap, normal, premium</span><span class="pz">⤢</span></figcaption></figure>
+          <div class="pair">
+            <figure class="fig zoom rv" data-i="26"><div class="pi"><img src="public/decks/quant-market-study/027.jpg" loading="lazy" alt="Price-tier distribution by state"></div><figcaption><span class="pn">27</span><span class="pc">Price-tier distribution by state</span><span class="pz">⤢</span></figcaption></figure>
+            <figure class="fig zoom rv" data-d="1" data-i="27"><div class="pi"><img src="public/decks/quant-market-study/028.jpg" loading="lazy" alt="State by category share"></div><figcaption><span class="pn">28</span><span class="pc">State × category share</span><span class="pz">⤢</span></figcaption></figure>
+          </div>
+          <figure class="fig zoom rv" data-i="28"><div class="pi"><img src="public/decks/quant-market-study/029.jpg" loading="lazy" alt="Treemap — total owed by city"></div><figcaption><span class="pn">29</span><span class="pc">Treemap — total owed by city</span><span class="pz">⤢</span></figcaption></figure>
+          <figure class="fig zoom key rv" data-i="29"><div class="pi"><img src="public/decks/quant-market-study/030.jpg" loading="lazy" alt="Elbow method for optimal k"></div><figcaption><span class="pn">30</span><span class="pc">Elbow method — choosing the number of clusters</span><span class="pz">⤢</span></figcaption></figure>
+          <div class="note rv"><p>Inertia falls steeply, then flattens out — and the study settles on <b>k = 5</b>, the point where extra clusters stop buying much structure.</p></div>
+          <figure class="fig zoom rv" data-i="30"><div class="pi"><img src="public/decks/quant-market-study/031.jpg" loading="lazy" alt="3D K-Means clustering"></div><figcaption><span class="pn">31</span><span class="pc">K-Means in 3D — spend × quantity × age</span><span class="pz">⤢</span></figcaption></figure>
+          <figure class="fig zoom key rv" data-i="31"><div class="pi"><img src="public/decks/quant-market-study/032.jpg" loading="lazy" alt="The five segments"></div><figcaption><span class="pn">32</span><span class="pc">The five segments, named</span><span class="pz">⤢</span></figcaption></figure>
+          <div class="insights rv">
+            <div class="insight"><div class="n">0–2</div><p><b>Low spenders, older-medium, young-high</b> — the spend spectrum, from minimal to impulse.</p></div>
+            <div class="insight"><div class="n">3</div><p><b>Bulk buyers</b> — frequent, low-value orders in larger quantity.</p></div>
+            <div class="insight"><div class="n">4</div><p><b>Quiet, low-quantity</b> buyers — thin engagement, worth nurturing.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ACT V ============ -->
+    <section class="act" id="act5">
+      <div class="wrap">
+        <div class="act-open">
+          <div>
+            <div class="act-num rv">V</div>
+            <div class="act-kick rv" data-d="1"><span class="seri"></span> 05 · Activate</div>
+            <h2 class="rv" data-d="1">A different message for <em>each of the five</em></h2>
+          </div>
+          <p class="lead rv" data-d="2">Segmentation only matters if it changes what you do. Each cluster gets a tactic that traces straight back to a number — a correlation, a test, a centroid.</p>
+        </div>
+        <div class="story">
+          <figure class="fig zoom key rv" data-i="32"><div class="pi"><img src="public/decks/quant-market-study/033.jpg" loading="lazy" alt="Marketing strategy by segment"></div><figcaption><span class="pn">33</span><span class="pc">Marketing strategy — one play per segment</span><span class="pz">⤢</span></figcaption></figure>
+          <div class="note rv"><p>Price-led discounts for the cautious, <b>bundles</b> for the steady, <b>loyalty</b> for the high-spenders, <b>membership</b> for the bulk buyers, and a <b>dedicated touch</b> for the quiet few.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ OUTCOME ============ -->
+    <section class="outcome">
+      <div class="wrap">
+        <div class="sec-label rv">The outcome</div>
+        <h2 class="rv" data-d="1">Five segments — and <em>a marketing play for each.</em></h2>
+        <p class="ol rv" data-d="2">The real output isn't a chart, it's a decision: one tactic per cluster, each one traceable to a number — a correlation, a hypothesis test, a cluster centroid. From 7,665 cleaned orders to a strategy a team can act on.</p>
+        <div class="sec-label rv" data-d="1" style="margin-top:clamp(44px,6vw,72px)">What the data also flagged</div>
+        <div class="nexts signals rv" data-d="1" style="margin-top:clamp(20px,2.4vw,28px)">
+          <div class="nx"><img class="nx-art" src="public/sig-timing.png" loading="lazy" alt="Monthly order counts peaking in July"><div class="nx-body"><div class="nxn">Seasonality</div><h4>A mid-year order peak</h4><p>Order volume runs highest in July and August and dips to a February low. The deck surfaces the pattern but not its cause — a signal to investigate, not yet a conclusion.</p></div></div>
+          <div class="nx"><img class="nx-art" src="public/sig-pricing.png" loading="lazy" alt="A tight diagonal price-to-revenue correlation"><div class="nx-body"><div class="nxn">Revenue</div><h4>Price, not quantity, moves the total</h4><p>Total Owed correlates with unit price at r = 0.98, while quantity and age sit near zero — revenue rides on what customers buy, not how much.</p></div></div>
+          <div class="nx"><img class="nx-art" src="public/sig-reach.png" loading="lazy" alt="Two contrasting streams — orders and spend by gender"><div class="nx-body"><div class="nxn">Gender</div><h4>Men order — and spend — more</h4><p>Men place roughly 2.4× the orders of women, and Welch's t-test puts their higher spend past doubt (p ≈ 7.6 × 10⁻¹¹).</p></div></div>
+        </div>
+        <div class="sec-label rv" data-d="1" style="margin-top:clamp(44px,6vw,72px)">Where it goes next</div>
+        <div class="nexts rv" data-d="2" style="margin-top:clamp(20px,2.4vw,28px)">
+          <div class="nx"><div class="nxn">Next · 01</div><h4>Broaden the sample</h4><p>The 18–34 skew is a sampling artefact; a wider age spread would test whether the segments hold.</p></div>
+          <div class="nx"><div class="nxn">Next · 02</div><h4>Validate the clusters</h4><p>Silhouette scores and a hold-out set to confirm the five groups are stable, not an artefact of k.</p></div>
+          <div class="nx"><div class="nxn">Next · 03</div><h4>Measure the play</h4><p>A/B the per-segment tactics and track lift against a single-message control.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FULL DECK CTA ============ -->
+    <section class="deckcta">
+      <div class="wrap">
+        <div class="deckcta-card rv">
+          <div>
+            <div class="sec-label" style="margin-bottom:18px">The full presentation</div>
+            <h2>Prefer the <em>raw deck?</em></h2>
+            <p>All 34 slides, exactly as presented — in a focused, full-screen viewer with a thumbnail strip and keyboard navigation.</p>
+          </div>
+          <a class="deckcta-btn" href="deck.html">Open the full deck <span>↗</span></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FOOTER ============ -->
+    <footer>
+      <div class="wrap">
+        <div class="foot-grid">
+          <div class="foot-brand"><svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="13" width="4.5" height="8" rx="1"/><rect x="9.75" y="8" width="4.5" height="13" rx="1"/><rect x="16.5" y="3" width="4.5" height="18" rx="1"/></svg>QM Study</div>
+          <div style="display:inline-flex; gap:12px; flex-wrap:wrap;">
+            <a class="foot-act" href="#top">Back to top ↑</a>
+          </div>
+        </div>
+        <div class="foot-meta">Quantitative Market Study · Customer segmentation from purchase data<br>Exploratory analysis · Hypothesis testing · K-Means clustering — told through its deck.</div>
+      </div>
+    </footer>
+  </main>
+
+  <!-- LIGHTBOX -->
+  <div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Slide viewer">
+    <div class="lb-top"><span class="c" id="lbC">01 / 34</span><button class="lb-x" id="lbX" aria-label="Close">✕</button></div>
+    <div class="lb-stage">
+      <button class="lb-nav lb-prev" id="lbP" aria-label="Previous">‹</button>
+      <img id="lbImg" src="" alt="">
+      <button class="lb-nav lb-next" id="lbN" aria-label="Next">›</button>
+    </div>
+    <div class="lb-cap" id="lbCap"></div>
+  </div>
+
+  <script>
+  (function(){
+    var BASE = 'public/decks/quant-market-study/';
+    var CAPS = ['Title — Quantitative Market Study','Contents','Introduction — the brief','Customer data collection','Purchases by category','Price distribution — before & after cleaning','Correlation matrix — what moves revenue','Price histograms by category','Orders over time','Total orders by month','Average & total spend by category','Spend & quantity by age','Orders by age group','Statistical tools — t-test & chi-square','Test results — spending across gender','Statistical tools — Pearson & power','Test results — correlation & clusters','Orders & spending by gender','Average total owed by state','Average spend by state','Price tiers — cheap, normal, premium','Category deep-dive — Books & Entertainment','Category deep-dive — Daily Essentials','Category deep-dive — Electronics','Category deep-dive — Fashion','Category deep-dive — Home & Kitchen','Price-tier distribution by state','State × category share','Treemap — total owed by city','Elbow method — choosing k','3D K-Means clustering','The five segments','Marketing strategy by segment','Thank you'];
+    var TOTAL = CAPS.length;
+    function pad(n){ return String(n).padStart(3,'0'); }
+    function pad2(n){ return String(n).padStart(2,'0'); }
+    function src(i){ return BASE + pad(i+1) + '.jpg'; }
+    var reduce = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+    /* progress + nav */
+    var nav=document.getElementById('nav'), prog=document.getElementById('prog');
+    function onScroll(){
+      var h=document.documentElement, max=h.scrollHeight-h.clientHeight;
+      prog.style.width=(max>0?(h.scrollTop/max)*100:0)+'%';
+      nav.classList.toggle('solid', h.scrollTop>30);
+    }
+    document.addEventListener('scroll', onScroll, {passive:true}); onScroll();
+
+    /* reveal */
+    var rO=new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); rO.unobserve(e.target); } }); },{threshold:0.12, rootMargin:'0px 0px -7% 0px'});
+    document.querySelectorAll('.rv').forEach(function(el){ rO.observe(el); });
+    document.querySelectorAll('.hero .rv').forEach(function(el){ requestAnimationFrame(function(){ el.classList.add('in'); }); });
+
+    /* scrollspy */
+    var links=[].slice.call(document.querySelectorAll('.acts-nav a'));
+    var secs=links.map(function(a){ return document.getElementById(a.dataset.act); });
+    var sO=new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ links.forEach(function(a){ a.classList.toggle('on', a.dataset.act===e.target.id); }); } }); },{rootMargin:'-45% 0px -50% 0px'});
+    secs.forEach(function(s){ if(s) sO.observe(s); });
+
+    /* plates -> lightbox */
+    document.querySelectorAll('figure.fig.zoom').forEach(function(f){ f.addEventListener('click',function(){ openLb(parseInt(f.dataset.i,10)||0); }); });
+
+    /* lightbox */
+    var lb=document.getElementById('lb'), lbImg=document.getElementById('lbImg'), lbC=document.getElementById('lbC'), lbCap=document.getElementById('lbCap'), cur=0;
+    function render(){ lbImg.style.opacity='0'; var im=new Image(); im.onload=function(){ lbImg.src=im.src; lbImg.style.opacity='1'; }; im.src=src(cur); lbImg.alt=CAPS[cur]; lbC.textContent=pad2(cur+1)+' / '+pad2(TOTAL); lbCap.textContent=CAPS[cur]; }
+    function openLb(i){ cur=(i+TOTAL)%TOTAL; render(); lb.classList.add('open'); document.body.style.overflow='hidden'; }
+    function closeLb(){ lb.classList.remove('open'); document.body.style.overflow=''; }
+    function step(d){ cur=(cur+d+TOTAL)%TOTAL; render(); }
+    document.getElementById('lbX').addEventListener('click', closeLb);
+    document.getElementById('lbP').addEventListener('click', function(){ step(-1); });
+    document.getElementById('lbN').addEventListener('click', function(){ step(1); });
+    lb.addEventListener('click', function(e){ if(e.target===lb || e.target.classList.contains('lb-stage')) closeLb(); });
+    document.addEventListener('keydown', function(e){ if(!lb.classList.contains('open'))return; if(e.key==='Escape')closeLb(); else if(e.key==='ArrowLeft')step(-1); else if(e.key==='ArrowRight')step(1); });
+
+    /* ---------------- cursor glow ---------------- */
+    var glow=document.getElementById('cursorGlow');
+    if(window.matchMedia('(hover:hover)').matches && !reduce){
+      window.addEventListener('mousemove', function(e){
+        glow.style.transform='translate('+e.clientX+'px,'+e.clientY+'px)'; glow.classList.add('on');
+      }, {passive:true});
+      document.addEventListener('mouseleave', function(){ glow.classList.remove('on'); });
+    }
+
+    /* ---------------- ticker ---------------- */
+    var TICK=['CLEANED N = <b>7,665</b>','CATEGORIES = <b>5</b>','r(price,revenue) = <b>0.98</b>',
+      'p(gender spend) = <b>7.6e⁻¹¹</b>','OPTIMAL k = <b>5</b>','POWER = <b>1.0</b>','PEAK = <b>JULY</b>',
+      'MALE ORDERS = <b>2.4×</b>','SEGMENTS = <b>5</b>','CORE AGE = <b>18–34</b>'];
+    var tickHTML=TICK.map(function(t){return '<span class="ticker-item">'+t+'</span>';}).join('');
+    document.getElementById('ticker').innerHTML=tickHTML+tickHTML;
+
+    /* ================= HERO NUMBER FIELD ================= */
+    var canvas=document.getElementById('numField');
+    var ctx=canvas.getContext('2d');
+    var hero=document.getElementById('top');
+    var cells=[], cols=0, rows=0, cell=38, DPR=1;
+    var mouse={ x:-9999, y:-9999 };
+    var heroVisible=true, rafId=null;
+    var GLYPHS='0123456789';
+    var SEGC=['#8b95a6','#5bc8a0','#e8b54b','#6aa6ff','#c98bdb'];
+
+    function sizeField(){
+      var r=hero.getBoundingClientRect();
+      DPR=Math.min(window.devicePixelRatio||1, 2);
+      canvas.width=Math.floor(r.width*DPR); canvas.height=Math.floor(r.height*DPR);
+      canvas.style.width=r.width+'px'; canvas.style.height=r.height+'px';
+      cell=r.width<640 ? 30 : 40;
+      cols=Math.ceil(r.width/cell)+1; rows=Math.ceil(r.height/cell)+1;
+      cells=[];
+      for(var y=0;y<rows;y++){ for(var x=0;x<cols;x++){
+        cells.push({ bx:x*cell+cell/2, by:y*cell+cell/2, ox:0, oy:0, g:0,
+          ch:GLYPHS[(Math.random()*10)|0],
+          seg:Math.random()<0.06 ? SEGC[(Math.random()*5)|0] : null,
+          flick:Math.random()*0.02 });
+      }}
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+    }
+    function drawField(){
+      if(!heroVisible){ rafId=null; return; }
+      ctx.setTransform(DPR,0,0,DPR,0,0);
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      var R=170, R2=R*R;
+      var fontBase=(cell*0.42)|0;
+      for(var i=0;i<cells.length;i++){
+        var c=cells[i];
+        var dx=c.bx-mouse.x, dy=c.by-mouse.y;
+        var d2=dx*dx+dy*dy;
+        var target=0, pushX=0, pushY=0;
+        if(d2<R2){
+          var d=Math.sqrt(d2)||1; var t=1-d/R; target=t;
+          var push=t*t*26; pushX=(dx/d)*push; pushY=(dy/d)*push;
+        }
+        c.g+=(target-c.g)*0.12;
+        c.ox+=(pushX-c.ox)*0.12; c.oy+=(pushY-c.oy)*0.12;
+        if(Math.random()<c.flick) c.ch=GLYPHS[(Math.random()*10)|0];
+        var g=c.g;
+        var alpha=0.05+g*0.95;
+        var size=fontBase*(1+g*0.55);
+        ctx.font=(g>0.5?'600 ':'400 ')+size+'px "JetBrains Mono", monospace';
+        if(c.seg){ ctx.fillStyle=c.seg; ctx.globalAlpha=0.16+g*0.84; }
+        else if(g>0.04){
+          var rr=Math.round(40+(91-40)*g), gg=Math.round(46+(225-46)*g), bb=Math.round(56+(201-56)*g);
+          ctx.fillStyle='rgb('+rr+','+gg+','+bb+')'; ctx.globalAlpha=alpha;
+        } else { ctx.fillStyle='#2a313d'; ctx.globalAlpha=0.5; }
+        if(g>0.6){ ctx.shadowColor='rgba(91,225,201,0.7)'; ctx.shadowBlur=14*g; } else { ctx.shadowBlur=0; }
+        ctx.fillText(c.ch, c.bx+c.ox, c.by+c.oy);
+      }
+      ctx.globalAlpha=1; ctx.shadowBlur=0;
+      rafId=requestAnimationFrame(drawField);
+    }
+    function startField(){ if(!rafId) rafId=requestAnimationFrame(drawField); }
+    hero.addEventListener('mousemove', function(e){ var r=hero.getBoundingClientRect(); mouse.x=e.clientX-r.left; mouse.y=e.clientY-r.top; });
+    hero.addEventListener('mouseleave', function(){ mouse.x=-9999; mouse.y=-9999; });
+    window.addEventListener('resize', function(){ sizeField(); placeChips(); });
+    sizeField();
+    if(!reduce){ startField(); } else { drawField(); /* one static frame */ }
+    if('IntersectionObserver' in window){
+      new IntersectionObserver(function(es){ heroVisible=es[0].isIntersecting; if(heroVisible && !reduce) startField(); },{threshold:0.02}).observe(hero);
+    }
+
+    /* ---------------- hero stat chips ---------------- */
+    var CHIPS=[
+      {v:'7,665', l:'Cleaned purchases', x:14, y:13},
+      {v:'0.98', l:'Price ↔ revenue correlation', x:85, y:15},
+      {v:'5', l:'Customer segments', x:71, y:28, cls:'s2'},
+      {v:'2.4×', l:'Male vs female orders', x:92, y:44},
+      {v:'p=7.6e⁻¹¹', l:'Gender spend significance', x:78, y:60, cls:'s3'},
+      {v:'34', l:'Slides in the deck', x:90, y:75},
+      {v:'k=5', l:'Optimal clusters (elbow)', x:27, y:88, cls:'s2'},
+      {v:'July', l:'Peak demand month', x:49, y:90, cls:'s1'},
+      {v:'r≈0', l:'Age has no effect on spend', x:69, y:87, cls:'s4'},
+    ];
+    var chipHost=document.getElementById('chips');
+    chipHost.innerHTML=CHIPS.map(function(c){ return '<div class="chip '+(c.cls||'')+'"><span class="v">'+c.v+'</span><span class="l">'+c.l+'</span></div>'; }).join('');
+    var chipEls=Array.prototype.slice.call(chipHost.children);
+    function placeChips(){
+      var r=hero.getBoundingClientRect();
+      chipEls.forEach(function(el,i){ el.dataset.bx=CHIPS[i].x/100*r.width; el.dataset.by=CHIPS[i].y/100*r.height; el.style.left=CHIPS[i].x+'%'; el.style.top=CHIPS[i].y+'%'; });
+    }
+    placeChips();
+    hero.addEventListener('mousemove', function(e){
+      var r=hero.getBoundingClientRect(); var mx=e.clientX-r.left, my=e.clientY-r.top;
+      chipEls.forEach(function(el){
+        var bx=+el.dataset.bx, by=+el.dataset.by; var dx=mx-bx, dy=my-by, dist=Math.hypot(dx,dy);
+        if(dist<150){ var f=(1-dist/150)*10; el.style.transform='translate(-50%,-50%) translate('+(dx/dist*f)+'px,'+(dy/dist*f)+'px)'; }
+        else { el.style.transform='translate(-50%,-50%)'; }
+      });
+    });
+    hero.addEventListener('mouseleave', function(){ chipEls.forEach(function(el){ el.style.transform='translate(-50%,-50%)'; }); });
+  })();
+  </script>
+</body>
+</html>

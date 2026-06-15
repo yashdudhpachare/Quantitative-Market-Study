@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#070809" />
+<title>Quantitative Market Study — Full Deck · 34 Slides</title>
+<meta name="description" content="The complete Quantitative Market Study presentation — all 34 slides in a full-screen viewer." />
+<link rel="icon" type="image/svg+xml" href='data:image/svg+xml;utf8,&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; viewBox=&quot;0 0 64 64&quot;&gt;&lt;rect width=&quot;64&quot; height=&quot;64&quot; rx=&quot;14&quot; fill=&quot;%23070809&quot;/&gt;&lt;text x=&quot;50%25&quot; y=&quot;60%25&quot; text-anchor=&quot;middle&quot; font-family=&quot;monospace&quot; font-weight=&quot;700&quot; font-size=&quot;30&quot; fill=&quot;%235BE1C9&quot;&gt;qm&lt;/text&gt;&lt;/svg&gt;' />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" />
+<style>
+  :root{
+    --bg:#070809; --panel:#0f1218; --ink:#E9ECF1; --ink-dim:#c4cad4; --muted:#8b93a1; --faint:#545c6a;
+    --line:#1b2029; --line-2:#2a3140;
+    --accent:#5be1c9; --gold:#e8b54b; --gold-2:#f0c96a; --deep:#0a0c10;
+    --disp:"Space Grotesk",system-ui,sans-serif;
+    --body:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --gut:clamp(16px,3vw,40px); --ease:cubic-bezier(.16,1,.3,1);
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; }
+  body{ font-family:var(--body); background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased; overflow:hidden; }
+  a{ color:inherit; text-decoration:none; }
+  ::selection{ background:var(--accent); color:#f1f6f0; }
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+  img{ display:block; max-width:100%; }
+
+  .app{ display:flex; flex-direction:column; height:100dvh; }
+
+  header{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:0 var(--gut); height:60px; border-bottom:1px solid var(--line); flex:none; background:var(--bg); z-index:5; }
+  .back{ display:inline-flex; align-items:center; gap:9px; font-size:13px; font-weight:500; color:var(--ink); padding:9px 14px; border:1px solid var(--line-2); border-radius:999px; transition:background .25s, color .25s; }
+  .back:hover{ background:var(--accent); color:var(--bg); border-color:var(--accent); }
+  .brand{ display:inline-flex; align-items:center; gap:9px; font-family:var(--disp); font-weight:700; font-size:16px; letter-spacing:-0.01em; }
+  .brand .mark{ width:18px; height:18px; flex:none; display:block; }
+  .brand .mark rect{ fill:var(--accent); }
+  .brand .tag{ font-family:var(--body); font-weight:500; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); border-left:1px solid var(--line-2); padding-left:11px; margin-left:3px; }
+  @media (max-width:600px){ .brand .tag{ display:none; } }
+  .counter{ font-family:var(--disp); font-weight:600; font-size:14px; letter-spacing:0.08em; color:var(--accent); min-width:74px; text-align:right; }
+
+  .stage{ flex:1; min-height:0; position:relative; background:var(--deep); display:flex; align-items:center; justify-content:center; padding:clamp(14px,3vw,40px) clamp(54px,7vw,110px); }
+  .stage::before,.stage::after{ content:""; position:absolute; left:0; right:0; height:60px; pointer-events:none; z-index:1; }
+  .stage::before{ top:0; background:linear-gradient(180deg, rgba(0,0,0,0.22), transparent); }
+  .stage::after{ bottom:0; background:linear-gradient(0deg, rgba(0,0,0,0.22), transparent); }
+  .big{ max-width:100%; max-height:100%; object-fit:contain; border-radius:8px; box-shadow:0 30px 80px -24px rgba(0,0,0,0.6); background:#fff; transition:opacity .18s ease; }
+  .nav{ position:absolute; top:50%; transform:translateY(-50%); z-index:3; width:clamp(40px,4vw,52px); height:clamp(40px,4vw,52px); border-radius:50%; border:1px solid rgba(241,246,240,0.28); background:rgba(16,36,31,0.32); backdrop-filter:blur(6px); color:#f1f6f0; font-size:24px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .25s, color .25s, transform .25s; }
+  .nav:hover{ background:var(--gold-2); color:var(--deep); }
+  .nav:active{ transform:translateY(-50%) scale(0.94); }
+  .prev{ left:clamp(10px,2vw,26px); } .next{ right:clamp(10px,2vw,26px); }
+
+  .cap{ flex:none; display:flex; align-items:center; gap:14px; padding:13px var(--gut); border-bottom:1px solid var(--line); background:var(--bg); }
+  .cap .cn{ font-family:var(--disp); font-weight:700; font-size:13px; color:var(--accent); flex:none; }
+  .cap .ct{ font-size:14.5px; color:var(--ink-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cap .hint{ margin-left:auto; font-size:11px; letter-spacing:0.08em; color:var(--faint); white-space:nowrap; }
+  @media (max-width:600px){ .cap .hint{ display:none; } }
+
+  .strip{ flex:none; background:var(--bg); padding:14px var(--gut) calc(14px + env(safe-area-inset-bottom)); overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; scrollbar-color:var(--line-2) transparent; }
+  .strip::-webkit-scrollbar{ height:8px; }
+  .strip::-webkit-scrollbar-thumb{ background:var(--line-2); border-radius:99px; }
+  .strip-row{ display:flex; gap:10px; width:max-content; }
+  .tn{ flex:0 0 auto; width:clamp(96px,11vw,138px); border:2px solid var(--line); border-radius:7px; overflow:hidden; background:var(--panel); cursor:pointer; padding:0; position:relative; transition:border-color .2s, transform .2s; }
+  .tn img{ width:100%; aspect-ratio:16/9; object-fit:cover; object-position:top; opacity:.62; transition:opacity .2s; }
+  .tn:hover{ transform:translateY(-2px); }
+  .tn:hover img{ opacity:.9; }
+  .tn .tnn{ position:absolute; top:4px; left:4px; font-family:var(--disp); font-weight:700; font-size:10px; color:#fff; background:rgba(16,36,31,0.82); padding:2px 6px; border-radius:4px; }
+  .tn.on{ border-color:var(--gold-2); transform:translateY(-2px); }
+  .tn.on img{ opacity:1; }
+  .tn.on .tnn{ background:var(--gold-2); color:var(--deep); }
+  @media (prefers-reduced-motion:reduce){ .big,.tn,.tn img,.nav{ transition:none; } }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <a class="back" href="index.html">← <span>Back to case study</span></a>
+      <div class="brand"><svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="13" width="4.5" height="8" rx="1"/><rect x="9.75" y="8" width="4.5" height="13" rx="1"/><rect x="16.5" y="3" width="4.5" height="18" rx="1"/></svg>QM Study<span class="tag">Full deck</span></div>
+      <div class="counter" id="counter">01 / 34</div>
+    </header>
+
+    <div class="stage">
+      <button class="nav prev" id="prev" aria-label="Previous slide">‹</button>
+      <img class="big" id="big" src="" alt="" />
+      <button class="nav next" id="next" aria-label="Next slide">›</button>
+    </div>
+
+    <div class="cap">
+      <span class="cn" id="capN">01</span>
+      <span class="ct" id="capT"></span>
+      <span class="hint">Use ← → keys · click a thumbnail</span>
+    </div>
+
+    <div class="strip" id="strip">
+      <div class="strip-row" id="stripRow"></div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    var BASE='public/decks/quant-market-study/';
+    var CAPS=['Title — Quantitative Market Study','Contents','Introduction — the brief','Customer data collection','Purchases by category','Price distribution — before & after cleaning','Correlation matrix — what moves revenue','Price histograms by category','Orders over time','Total orders by month','Average & total spend by category','Spend & quantity by age','Orders by age group','Statistical tools — t-test & chi-square','Test results — spending across gender','Statistical tools — Pearson & power','Test results — correlation & clusters','Orders & spending by gender','Average total owed by state','Average spend by state','Price tiers — cheap, normal, premium','Category deep-dive — Books & Entertainment','Category deep-dive — Daily Essentials','Category deep-dive — Electronics','Category deep-dive — Fashion','Category deep-dive — Home & Kitchen','Price-tier distribution by state','State × category share','Treemap — total owed by city','Elbow method — choosing k','3D K-Means clustering','The five segments','Marketing strategy by segment','Thank you'];
+    var TOTAL=CAPS.length;
+    function pad(n){ return String(n).padStart(2,'0'); }
+    function pad3(n){ return String(n).padStart(3,'0'); }
+    function src(i){ return BASE+pad3(i+1)+'.jpg'; }
+    var reduce=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+    var big=document.getElementById('big'), counter=document.getElementById('counter'),
+        capN=document.getElementById('capN'), capT=document.getElementById('capT'),
+        stripRow=document.getElementById('stripRow'), strip=document.getElementById('strip');
+    var cur=0, tns=[];
+
+    for(var i=0;i<TOTAL;i++){ (function(idx){
+      var b=document.createElement('button'); b.className='tn'; b.setAttribute('aria-label','Go to slide '+(idx+1));
+      b.innerHTML='<span class="tnn">'+pad(idx+1)+'</span><img src="'+src(idx)+'" loading="lazy" alt="Slide '+(idx+1)+'">';
+      b.addEventListener('click',function(){ go(idx); });
+      stripRow.appendChild(b); tns.push(b);
+    })(i); }
+
+    function render(){
+      big.style.opacity='0';
+      big.onload=function(){ big.style.opacity='1'; };
+      big.onerror=function(){ big.style.opacity='1'; };
+      big.src=src(cur);
+      if(big.complete && big.naturalWidth){ big.style.opacity='1'; }
+      big.alt=CAPS[cur];
+      counter.textContent=pad(cur+1)+' / '+pad(TOTAL);
+      capN.textContent=pad(cur+1);
+      capT.textContent=CAPS[cur];
+      tns.forEach(function(t,i){ t.classList.toggle('on', i===cur); });
+      var act=tns[cur];
+      if(act){ var l=act.offsetLeft-(strip.clientWidth/2)+(act.clientWidth/2); strip.scrollTo({left:l, behavior:reduce?'auto':'smooth'}); }
+    }
+    function go(i){ cur=(i+TOTAL)%TOTAL; render(); }
+
+    document.getElementById('prev').addEventListener('click',function(){ go(cur-1); });
+    document.getElementById('next').addEventListener('click',function(){ go(cur+1); });
+    document.addEventListener('keydown',function(e){
+      if(e.key==='ArrowLeft'){ go(cur-1); }
+      else if(e.key==='ArrowRight'){ go(cur+1); }
+      else if(e.key==='Home'){ go(0); }
+      else if(e.key==='End'){ go(TOTAL-1); }
+      else if(e.key==='Escape'){ window.location.href='index.html'; }
+    });
+
+    var h=parseInt((location.hash||'').replace('#',''),10);
+    if(h>=1 && h<=TOTAL){ cur=h-1; }
+    render();
+  })();
+  </script>
+</body>
+</html>

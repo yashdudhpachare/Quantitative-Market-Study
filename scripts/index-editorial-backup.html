@@ -1,0 +1,4004 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#F5F2EE" />
+  <title>Quantitative Market Study — Customer Segmentation from Purchase Data</title>
+  <meta name="description" content="A quantitative case study: 7,665 cleaned Amazon purchases turned into five customer segments via EDA, hypothesis testing (Welch's t, Chi-square, Pearson) and K-Means clustering — then a marketing strategy per segment." />
+  <meta name="author" content="Awart Katiyar · Paarth S Barkur · Shuvadeep Ghosh · Yash Dudhpachare" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Quantitative Market Study — Customer Segmentation from Purchase Data" />
+  <meta property="og:description" content="From 7,665 cleaned purchases to five customer segments and a strategy for each — statistical testing and K-Means clustering, told as an editorial case study." />
+  <meta property="og:image" content="og-cover.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Quantitative Market Study — five customers hiding in one dataset" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Quantitative Market Study — Customer Segmentation" />
+  <meta name="twitter:description" content="7,665 purchases → five segments → a marketing strategy for each. Statistical testing + K-Means, as an editorial case study." />
+  <meta name="twitter:image" content="og-cover.jpg" />
+
+  <!-- Favicon — inline SVG monogram on warm paper -->
+  <link rel="icon" type="image/svg+xml" href='data:image/svg+xml;utf8,&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; viewBox=&quot;0 0 64 64&quot;&gt;&lt;rect width=&quot;64&quot; height=&quot;64&quot; rx=&quot;12&quot; fill=&quot;%23F5F2EE&quot;/&gt;&lt;text x=&quot;50%25&quot; y=&quot;58%25&quot; text-anchor=&quot;middle&quot; font-family=&quot;Georgia, serif&quot; font-style=&quot;italic&quot; font-size=&quot;34&quot; fill=&quot;%231A1814&quot;&gt;qm&lt;/text&gt;&lt;circle cx=&quot;52&quot; cy=&quot;14&quot; r=&quot;3&quot; fill=&quot;%23C8B89A&quot;/&gt;&lt;/svg&gt;' />
+
+  <link rel="preload" as="image" href="hero.jpg" fetchpriority="high" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" />
+
+  <style>
+    /* ----------------------------------------------------------------------
+       QUANTITATIVE MARKET STUDY — single-file editorial case study
+       Aesthetic: Aesop x Kinfolk x Swiss grid journal
+       ---------------------------------------------------------------------- */
+
+    :root {
+      --bg:            #F5F2EE;
+      --surface:       #FAFAF8;
+      --text:          #1A1814;
+      --text-mute:     #6B6560;
+      --rule:          #E2DDD8;
+      --gold:          #C8B89A;
+      --gold-deep:     #B09E7E;
+      --charcoal:      #2C2825;
+
+      --max:           1440px;
+      --gutter:        clamp(20px, 4vw, 56px);
+      --col-gap:       clamp(16px, 1.8vw, 28px);
+
+      --display:       "Cormorant Garamond", "Cormorant", "Times New Roman", serif;
+      --body:          "DM Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      --mono:          "DM Mono", "JetBrains Mono", "Courier New", monospace;
+
+      --ease:          cubic-bezier(.22,.61,.36,1);
+      --ease-out:      cubic-bezier(.16,1,.3,1);
+      --reveal-dur:    700ms;
+
+      --nav-h:         56px;
+    }
+
+    /* ------------------------------- reset ------------------------------ */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--body);
+      font-weight: 300;
+      font-size: 16px;
+      line-height: 1.8;
+      letter-spacing: 0.005em;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+      cursor: none;
+    }
+    img, picture, svg { display: block; max-width: 100%; }
+    button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: none; }
+    a { color: inherit; text-decoration: none; cursor: none; }
+    p { margin: 0 0 1.2em; }
+    p:last-child { margin-bottom: 0; }
+
+    /* ----------------------------- typography --------------------------- */
+    .display { font-family: var(--display); font-weight: 400; letter-spacing: -0.012em; line-height: 1.04; color: var(--text); }
+    .display-italic { font-family: var(--display); font-style: italic; font-weight: 400; letter-spacing: -0.005em; }
+    .mono { font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 400; line-height: 1.6; }
+    .mono-sm { font-family: var(--mono); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; }
+    .lede { font-family: var(--display); font-style: italic; font-weight: 400; font-size: clamp(28px, 3.4vw, 44px); line-height: 1.25; letter-spacing: -0.005em; color: var(--text); }
+    .body-lg { font-size: clamp(17px, 1.25vw, 19px); line-height: 1.75; color: var(--text); font-weight: 300; }
+    .caption { font-family: var(--body); font-size: 14px; line-height: 1.7; color: var(--text-mute); font-weight: 300; }
+
+    /* ---------------------------- custom cursor ------------------------- */
+    /* Contextual label cursor.
+       Default  → a tiny editorial "+" crop mark follows the pointer.
+       Hover    → the cross morphs into a small charcoal pill carrying a
+                  context-specific label (OPEN / VIEW / BROWSE / CLOSE /
+                  PREV / NEXT / DRAG), set live by the cursor JS. */
+    @media (hover: hover) and (pointer: fine) {
+      .cursor-dot, .cursor-ring {
+        position: fixed; top: 0; left: 0;
+        pointer-events: none; z-index: 9999;
+        transform: translate(-50%, -50%);
+        will-change: transform, width, height, opacity;
+      }
+
+      /* instant precision tracker — sits at the true pointer position */
+      .cursor-dot {
+        width: 3px; height: 3px;
+        background: var(--charcoal);
+        border-radius: 0;
+        opacity: 0.85;
+        transition: opacity 200ms var(--ease),
+                    width 260ms var(--ease),
+                    height 260ms var(--ease),
+                    background 260ms var(--ease);
+      }
+
+      /* the cross-OR-pill body — lagging element, transforms on hover */
+      .cursor-ring {
+        min-width: 16px; height: 16px;
+        background: transparent;
+        border: 0; border-radius: 999px;
+        opacity: 0.95;
+        display: inline-flex; align-items: center; justify-content: center;
+        padding: 0;
+        transition: min-width 320ms var(--ease),
+                    height 320ms var(--ease),
+                    padding 320ms var(--ease),
+                    background 260ms var(--ease),
+                    opacity 200ms var(--ease);
+      }
+
+      /* the two thin crop-mark arms — only visible in the resting state */
+      .cursor-ring::before,
+      .cursor-ring::after {
+        content: "";
+        position: absolute; left: 50%; top: 50%;
+        background: var(--charcoal);
+        transform: translate(-50%, -50%);
+        transition: opacity 180ms var(--ease),
+                    background 260ms var(--ease);
+      }
+      .cursor-ring::before { width: 16px; height: 0.75px; }
+      .cursor-ring::after  { width: 0.75px; height: 16px; }
+
+      /* the label — hidden by default, fades in inside the pill on hover */
+      .cursor-label {
+        font-family: var(--mono);
+        font-size: 9.5px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        font-weight: 500;
+        color: var(--gold);
+        white-space: nowrap;
+        opacity: 0;
+        transform: translateY(0);
+        transition: opacity 220ms var(--ease) 60ms;
+        position: relative;
+        line-height: 1;
+        pointer-events: none;
+      }
+
+      /* HOVER STATE — pill expands around the label, cross fades out */
+      .cursor-ring.is-hover {
+        background: var(--charcoal);
+        padding: 7px 12px 8px;
+        height: auto;
+        min-width: 0;
+        opacity: 1;
+      }
+      .cursor-ring.is-hover::before,
+      .cursor-ring.is-hover::after {
+        opacity: 0;
+      }
+      .cursor-ring.is-hover .cursor-label {
+        opacity: 1;
+      }
+
+      /* No-label hover (chapter rail, nav monogram) — just dim the cross + grow it gently */
+      .cursor-ring.is-hover.is-bare {
+        background: transparent;
+        padding: 0;
+        min-width: 28px; height: 28px;
+      }
+      .cursor-ring.is-hover.is-bare::before { opacity: 1; width: 28px; }
+      .cursor-ring.is-hover.is-bare::after  { opacity: 1; height: 28px; }
+
+      /* dot stays as a tiny precision marker on hover; goes gold inside the pill */
+      .cursor-dot.is-hover {
+        opacity: 0;
+      }
+      .cursor-dot.is-hover.is-bare {
+        opacity: 1;
+        background: var(--gold-deep);
+      }
+    }
+    @media (hover: none) {
+      body { cursor: auto; }
+      a, button { cursor: pointer; }
+      .cursor-dot, .cursor-ring { display: none; }
+    }
+
+    /* --------------------------- progress bar --------------------------- */
+    .progress {
+      position: fixed; top: 0; left: 0;
+      height: 2px; width: 0%;
+      background: var(--gold);
+      z-index: 1000;
+      transition: width 60ms linear;
+    }
+
+    /* --------------------------------- nav ------------------------------ */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: var(--nav-h);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 var(--gutter);
+      background: rgba(245, 242, 238, 0.86);
+      -webkit-backdrop-filter: saturate(160%) blur(12px);
+      backdrop-filter: saturate(160%) blur(12px);
+      z-index: 900;
+      border-bottom: 0.5px solid transparent;
+      transition: border-color 350ms var(--ease), background 350ms var(--ease);
+    }
+    .nav.is-scrolled { border-bottom-color: var(--rule); }
+    .nav.is-up       { border-bottom-color: transparent; }
+
+    .nav-monogram {
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.32em;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    /* ----- chapter rail (the inline table-of-contents in the nav) ------- */
+    .nav-dots {
+      display: flex; align-items: stretch;
+      gap: 2px;
+      position: relative;
+      padding: 0 2px;
+    }
+
+    .nav-dot {
+      position: relative;
+      display: inline-flex; align-items: baseline;
+      gap: 7px;
+      padding: 8px 11px 9px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-weight: 500;
+      color: var(--text-mute);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: color 260ms var(--ease);
+    }
+    .nav-dot .nd-num {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      color: var(--text-mute);
+      opacity: 0.7;
+      transition: color 260ms var(--ease), opacity 260ms var(--ease);
+    }
+    .nav-dot .nd-name {
+      font-weight: 500;
+      transition: color 260ms var(--ease), letter-spacing 260ms var(--ease);
+    }
+
+    /* the active-state marker — a thin line that "draws" beneath the item */
+    .nav-dot::after {
+      content: "";
+      position: absolute; left: 11px; right: 11px; bottom: -1px;
+      height: 1px;
+      background: var(--text);
+      transform: scaleX(0);
+      transform-origin: center;
+      transition: transform 420ms var(--ease), background 260ms var(--ease);
+      z-index: 1;
+    }
+
+    /* hover preview — text wakes up + a faint sliver appears */
+    .nav-dot:hover { color: var(--text); }
+    .nav-dot:hover .nd-num { color: var(--text); opacity: 1; }
+    .nav-dot:hover::after {
+      transform: scaleX(0.32);
+      background: var(--text-mute);
+    }
+
+    /* active chapter — full underline + a quiet gold dot before the number */
+    .nav-dot.is-active {
+      color: var(--text);
+    }
+    .nav-dot.is-active .nd-num {
+      color: var(--gold-deep);
+      opacity: 1;
+    }
+    .nav-dot.is-active .nd-name { letter-spacing: 0.18em; }
+    .nav-dot.is-active::after {
+      transform: scaleX(1);
+      background: var(--text);
+    }
+
+    /* a small leading marker on the active item — a tiny filled square */
+    .nav-dot.is-active::before {
+      content: "";
+      position: absolute;
+      left: 4px; top: 50%;
+      width: 2px; height: 2px;
+      background: var(--gold-deep);
+      transform: translateY(-50%);
+      border-radius: 0.5px;
+    }
+
+    .nav-decks {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text);
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 8px 14px;
+      border: 0.5px solid var(--text);
+      border-radius: 999px;
+      transition: background 260ms var(--ease), color 260ms var(--ease);
+    }
+    .nav-decks:hover { background: var(--text); color: var(--bg); }
+    .nav-decks .arrow { display: inline-block; transform: translateY(-1px); }
+
+    /* mobile chapter indicator (replaces nav-dots) */
+    .nav-chip {
+      display: none;
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 0.5px solid var(--rule);
+      background: rgba(250, 247, 240, 0.6);
+      align-items: center; gap: 8px;
+    }
+    .nav-chip .chip-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--gold-deep);
+      flex: 0 0 auto;
+    }
+
+    /* mid widths — keep the rail but hide chapter names, show numbers only */
+    @media (max-width: 1080px) {
+      .nav-dot { padding: 8px 7px 9px; gap: 0; }
+      .nav-dot .nd-name { display: none; }
+      .nav-dot .nd-num { font-size: 10px; opacity: 0.85; letter-spacing: 0.18em; }
+      .nav-dot::after { left: 6px; right: 6px; }
+    }
+    @media (max-width: 880px) {
+      .nav-monogram { font-size: 11px; letter-spacing: 0.26em; }
+    }
+
+    @media (max-width: 768px) {
+      .nav-dots { display: none; }
+      .nav-chip { display: inline-flex; }
+      .nav-decks { padding: 7px 12px; font-size: 10px; }
+      .nav-decks .arrow { display: none; }
+      .nav-monogram { font-size: 11px; letter-spacing: 0.24em; }
+    }
+    @media (max-width: 420px) {
+      /* on small phones, the chip carries the chapter info — shrink the deck button to an icon-only "Decks" */
+      .nav-decks {
+        padding: 6px 10px;
+        font-size: 0;
+        letter-spacing: 0;
+        border-radius: 999px;
+      }
+      .nav-decks::after {
+        content: "↗";
+        font-size: 13px;
+        font-family: var(--mono);
+        letter-spacing: 0;
+        display: inline-block;
+      }
+      .nav-monogram { font-size: 10px; letter-spacing: 0.2em; }
+      .nav-chip { font-size: 9.5px; padding: 5px 10px; }
+    }
+
+    /* ----------------------- shared layout helpers ---------------------- */
+    .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 0 var(--gutter);
+    }
+    .grid12 {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      column-gap: var(--col-gap);
+      row-gap: clamp(40px, 6vw, 96px);
+    }
+    @media (max-width: 768px) {
+      .grid12 { grid-template-columns: 1fr; row-gap: 40px; }
+      .grid12 > * { grid-column: 1 / -1 !important; }
+    }
+
+    /* ------------------------- reveal animations ------------------------ */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition:
+        opacity var(--reveal-dur) var(--ease-out),
+        transform var(--reveal-dur) var(--ease-out);
+      will-change: opacity, transform;
+    }
+    .reveal.is-in { opacity: 1; transform: none; }
+    .reveal[data-delay="1"] { transition-delay: 80ms; }
+    .reveal[data-delay="2"] { transition-delay: 160ms; }
+    .reveal[data-delay="3"] { transition-delay: 240ms; }
+    .reveal[data-delay="4"] { transition-delay: 320ms; }
+    .reveal[data-delay="5"] { transition-delay: 400ms; }
+    .reveal[data-delay="6"] { transition-delay: 480ms; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+      html { scroll-behavior: auto; }
+      .reveal { opacity: 1; transform: none; }
+    }
+
+    /* ================================ HERO ============================== */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      min-height: 100svh;
+      display: flex; align-items: flex-end;
+      padding: calc(var(--nav-h) + 32px) var(--gutter) clamp(48px, 6vw, 96px);
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .hero-bg {
+      position: absolute; inset: -8% -4% -4% -4%;
+      background-image: url("hero.jpg");
+      background-size: cover;
+      background-position: center 30%;
+      filter: saturate(0.86) brightness(0.92) contrast(0.96);
+      z-index: -2;
+      will-change: transform;
+      animation: heroDrift 18s ease-in-out infinite alternate;
+    }
+    @keyframes heroDrift {
+      0%   { transform: scale(1.04) translate3d(0, 0, 0); }
+      100% { transform: scale(1.08) translate3d(-1.2%, -1.4%, 0); }
+    }
+    .hero-veil {
+      position: absolute; inset: 0;
+      background:
+        linear-gradient(180deg, rgba(20,18,15,0.55) 0%, rgba(20,18,15,0.12) 30%, rgba(20,18,15,0.35) 70%, rgba(16,14,11,0.82) 100%),
+        radial-gradient(120% 70% at 12% 92%, rgba(200,184,154,0.16) 0%, transparent 62%),
+        radial-gradient(80% 60% at 88% 8%, rgba(200,184,154,0.10) 0%, transparent 55%);
+      z-index: -1;
+    }
+
+    .hero-inner {
+      position: relative;
+      max-width: var(--max);
+      margin: 0 auto;
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      column-gap: var(--col-gap);
+      align-items: end;
+    }
+    .hero-eyebrow {
+      grid-column: 1 / -1;
+      color: rgba(250, 247, 240, 0.78);
+      margin-bottom: 28px;
+    }
+    .hero-line {
+      grid-column: 1 / span 10;
+      font-family: var(--display);
+      font-style: italic;
+      font-weight: 400;
+      font-size: clamp(40px, 7.2vw, 96px);
+      line-height: 1.04;
+      letter-spacing: -0.012em;
+      color: #FAFAF8;
+      text-wrap: balance;
+      text-shadow: 0 1px 30px rgba(0,0,0,0.25);
+    }
+    .hero-subline {
+      grid-column: 1 / span 8;
+      margin-top: 28px;
+      font-family: var(--display);
+      font-weight: 300;
+      font-size: clamp(17px, 1.6vw, 22px);
+      line-height: 1.55;
+      color: rgba(250, 247, 240, 0.86);
+      letter-spacing: 0.002em;
+      text-shadow: 0 1px 18px rgba(0,0,0,0.35);
+      max-width: 68ch;
+    }
+    .hero-subline strong { font-weight: 500; color: #FAFAF8; }
+    .hero-meta {
+      grid-column: 9 / -1;
+      align-self: end;
+      justify-self: end;
+      text-align: right;
+      color: rgba(250, 247, 240, 0.78);
+      margin-top: 32px;
+    }
+    .hero-meta div + div { margin-top: 4px; }
+
+    .hero-scroll {
+      position: absolute;
+      left: var(--gutter); bottom: 22px;
+      display: flex; align-items: center; gap: 10px;
+      color: rgba(250, 247, 240, 0.7);
+      font-family: var(--mono);
+      font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase;
+    }
+    .hero-scroll .line {
+      display: inline-block;
+      width: 28px; height: 1px;
+      background: rgba(250, 247, 240, 0.5);
+      animation: scrollPulse 2.2s var(--ease) infinite;
+      transform-origin: left;
+    }
+    @keyframes scrollPulse {
+      0%, 100% { transform: scaleX(0.4); opacity: 0.3; }
+      50%      { transform: scaleX(1);   opacity: 0.9; }
+    }
+
+    @media (max-width: 768px) {
+      .hero { min-height: 100vh; padding-bottom: 80px; }
+      .hero-line { grid-column: 1 / -1; font-size: clamp(34px, 8.6vw, 52px); }
+      .hero-subline { grid-column: 1 / -1; font-size: 15.5px; margin-top: 22px; max-width: 100%; }
+      .hero-meta { grid-column: 1 / -1; justify-self: start; text-align: left; margin-top: 28px; }
+    }
+
+    /* ======================== CHAPTER TRANSITION ======================== */
+    .ch-transition {
+      position: relative;
+      height: 1px;
+      background: var(--rule);
+      margin: clamp(32px, 4vw, 56px) 0;
+    }
+    .ch-transition .label {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--bg);
+      padding: 0 22px;
+      color: var(--text-mute);
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .ch-transition .label::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--bg);
+      transform-origin: right;
+      transform: scaleX(1);
+      transition: transform 900ms var(--ease-out);
+    }
+    .ch-transition.is-in .label::before { transform: scaleX(0); }
+
+    /* ============================== CHAPTERS ============================ */
+    .chapter {
+      position: relative;
+      padding: clamp(32px, 4vw, 56px) 0;
+    }
+
+    /* chapter hero block (used at top of every chapter) */
+    /* 56vh + center-aligned content: the title sits in the visual middle of the
+       hero, the chapter watermark anchors behind it, the recruiter never scrolls
+       through a half-screen of empty space waiting for the title to appear. */
+    .ch-hero {
+      position: relative;
+      min-height: 56vh;
+      min-height: 56svh;
+      display: flex; align-items: center;
+      padding: var(--gutter);
+      max-width: var(--max);
+      margin: 0 auto;
+      overflow: hidden;
+      scroll-margin-top: var(--nav-h);
+    }
+    .ch-watermark {
+      position: absolute;
+      left: clamp(-20px, -2vw, 0px);
+      bottom: clamp(-40px, -4vw, -10px);
+      font-family: var(--display);
+      font-weight: 300;
+      font-size: clamp(180px, 32vw, 420px);
+      line-height: 0.78;
+      color: var(--charcoal);
+      opacity: 0.045;
+      letter-spacing: -0.04em;
+      pointer-events: none;
+      user-select: none;
+      z-index: 0;
+    }
+    .ch-hero-inner {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      column-gap: var(--col-gap);
+      width: 100%;
+      align-items: end;
+    }
+    .ch-title {
+      grid-column: 1 / span 8;
+      font-family: var(--display);
+      font-weight: 400;
+      font-style: italic;
+      font-size: clamp(48px, 8.2vw, 124px);
+      line-height: 1.02;
+      letter-spacing: -0.015em;
+      color: var(--text);
+      text-wrap: balance;
+    }
+    .ch-title .line {
+      display: block;
+      overflow: hidden;
+    }
+    .ch-title .line span {
+      display: inline-block;
+      transform: translateY(110%);
+      transition: transform 900ms var(--ease-out);
+    }
+    .ch-hero.is-in .ch-title .line span { transform: translateY(0); }
+    .ch-hero.is-in .ch-title .line:nth-child(2) span { transition-delay: 80ms; }
+    .ch-hero.is-in .ch-title .line:nth-child(3) span { transition-delay: 160ms; }
+
+    .ch-aside {
+      grid-column: 9 / -1;
+      align-self: end;
+      color: var(--text-mute);
+    }
+    /* Each row is a 2-track grid: label flexes/wraps, value stays one line, right-aligned.
+       This is more robust than flex space-between for label/value pairs. */
+    .ch-aside .ch-aside-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      column-gap: 16px;
+      align-items: baseline;
+      padding: 14px 0;
+      border-top: 0.5px solid var(--rule);
+    }
+    .ch-aside .ch-aside-row:last-child { border-bottom: 0.5px solid var(--rule); }
+    .ch-aside .ch-aside-row > .mono {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ch-aside .num {
+      font-family: var(--display);
+      font-size: clamp(18px, 1.6vw, 22px);
+      color: var(--text);
+      text-align: right;
+      justify-self: end;
+      white-space: nowrap;
+    }
+
+    .ch-deck-link {
+      display: inline-flex; align-items: center; gap: 10px;
+      font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--text);
+      border-bottom: 0.5px solid var(--text);
+      padding-bottom: 4px;
+      transition: gap 280ms var(--ease), color 220ms var(--ease), border-color 220ms var(--ease);
+    }
+    .ch-deck-link:hover { gap: 16px; color: var(--gold-deep); border-color: var(--gold-deep); }
+    .ch-deck-link .arrow { display: inline-block; }
+
+    .ch-body { max-width: var(--max); margin: clamp(56px, 7vw, 104px) auto 0; padding: 0 var(--gutter); }
+
+    @media (max-width: 768px) {
+      .chapter { padding: clamp(24px, 5vw, 48px) 0; }
+      .ch-hero { min-height: 48vh; min-height: 48svh; padding-bottom: 36px; }
+      .ch-title { grid-column: 1 / -1; font-size: clamp(38px, 10.5vw, 56px); }
+      .ch-aside { grid-column: 1 / -1; }
+      .ch-aside { margin-top: 24px; }
+      .ch-aside .ch-aside-row { padding: 11px 0; }
+      .ch-aside .num { font-size: 18px; }
+      .ch-watermark { font-size: clamp(160px, 55vw, 240px); }
+      .ch-body { margin-top: clamp(40px, 7vw, 72px); }
+      .ch-deck-link { font-size: 10px; }
+    }
+
+    /* ----------------------- Chapter 1 — IMMERSION ---------------------- */
+    /* habitat — opening "where are we" block. Two columns of equal stretched
+       height: text on the left (eyebrow + lede + body floats up, 3-stat row
+       anchors down), photograph on the right with caption beneath. */
+    .ch1-habitat {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 6fr 5fr;
+      gap: clamp(32px, 4.5vw, 72px);
+      align-items: stretch;
+      margin-bottom: clamp(48px, 6vw, 72px);
+    }
+    .ch1-habitat .hab-text {
+      display: flex; flex-direction: column;
+      justify-content: space-between;
+      padding: clamp(4px, 0.6vw, 12px) 0 0 0;
+    }
+    .ch1-habitat .hab-text-top { display: block; }
+    .ch1-habitat .hab-eyebrow {
+      color: var(--text-mute); display: block; margin-bottom: 20px;
+    }
+    .ch1-habitat .hab-eyebrow::before {
+      content: "↳ "; color: var(--gold-deep); margin-right: 4px;
+    }
+    .ch1-habitat .hab-lede {
+      font-family: var(--display); font-style: italic; font-weight: 400;
+      font-size: clamp(26px, 2.6vw, 38px); line-height: 1.18;
+      letter-spacing: -0.008em; color: var(--text);
+      margin: 0 0 26px 0; text-wrap: balance;
+    }
+    .ch1-habitat .hab-lede em { color: var(--gold-deep); font-style: italic; }
+    .ch1-habitat .hab-body {
+      color: var(--text-mute);
+      font-size: 15.5px; line-height: 1.75;
+      margin: 0; font-weight: 300;
+      max-width: 52ch;
+    }
+    .ch1-habitat .hab-body em { color: var(--text); font-style: italic; font-weight: 400; }
+
+    /* anchor row — 3 mini-stats that grow from the prose */
+    .ch1-habitat .hab-stats {
+      list-style: none; padding: 28px 0 0 0;
+      margin: clamp(36px, 4vw, 56px) 0 0 0;
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: clamp(16px, 2vw, 32px);
+      border-top: 0.5px solid var(--rule);
+    }
+    .ch1-habitat .hab-stat { padding-right: 12px; }
+    .ch1-habitat .hab-stat .hs-num {
+      display: block;
+      font-family: var(--display); font-weight: 400;
+      font-size: clamp(30px, 3vw, 44px); line-height: 1;
+      letter-spacing: -0.02em; color: var(--text);
+    }
+    .ch1-habitat .hab-stat .hs-num small {
+      font-family: var(--mono); font-size: 10.5px;
+      letter-spacing: 0.2em; color: var(--text-mute);
+      margin-left: 6px; font-weight: 500;
+      text-transform: uppercase; vertical-align: 0.55em;
+    }
+    .ch1-habitat .hab-stat .hs-label {
+      display: block; margin-top: 12px;
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--text-mute);
+    }
+
+    /* photo column — stretches to grid height, fine inset frame */
+    .ch1-habitat .hab-photo {
+      margin: 0;
+      display: flex; flex-direction: column;
+    }
+    .ch1-habitat .hab-photo .ph-frame {
+      flex: 1 1 auto;
+      position: relative; overflow: hidden;
+      background: var(--surface);
+      min-height: clamp(380px, 48vh, 560px);
+      box-shadow:
+        0 30px 80px -40px rgba(26,24,20,0.24),
+        0 8px 24px -16px rgba(26,24,20,0.10),
+        inset 0 0 0 0.5px rgba(26,24,20,0.06);
+    }
+    .ch1-habitat .hab-photo img {
+      display: block; width: 100%; height: 100%; object-fit: cover;
+      transition: transform 1200ms var(--ease);
+    }
+    .ch1-habitat .hab-photo .ph-frame:hover img { transform: scale(1.015); }
+    /* fine label tucked into the photo's bottom-left, like a print caption */
+    .ch1-habitat .hab-photo .ph-frame::after {
+      content: "Field photograph";
+      position: absolute; left: 14px; bottom: 12px;
+      font-family: var(--mono); font-size: 9px;
+      letter-spacing: 0.24em; text-transform: uppercase;
+      color: rgba(248,245,238,0.86);
+      padding: 5px 9px 6px;
+      background: rgba(26,24,20,0.46);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    .ch1-habitat .hab-photo figcaption {
+      display: flex; justify-content: space-between; gap: 16px;
+      margin-top: 16px;
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--text-mute);
+    }
+    .ch1-habitat .hab-photo figcaption .fc-loc {
+      color: var(--text-mute);
+    }
+    .ch1-habitat .hab-photo figcaption .fc-meta {
+      color: var(--text-mute); opacity: 0.7;
+    }
+    @media (max-width: 900px) {
+      .ch1-habitat { grid-template-columns: 1fr; gap: 32px; }
+      .ch1-habitat .hab-photo .ph-frame { min-height: 320px; aspect-ratio: 3 / 2; }
+      .ch1-habitat .hab-stats { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 540px) {
+      .ch1-habitat .hab-stats { grid-template-columns: 1fr 1fr; gap: 20px 18px; }
+      .ch1-habitat .hab-stat:nth-child(3) { grid-column: 1 / -1; border-top: 0.5px dashed var(--rule); padding-top: 18px; }
+    }
+
+    /* deck-contents rail — chapter-agnostic preview of a source deck's sections.
+       Breaks out of the .ch-body max-width + gutter to span the full viewport
+       width (true full-bleed). The header (eyebrow + meta) stays inset to the
+       chapter's content edge; the cards strip extends edge-to-edge. */
+    .deck-contents {
+      grid-column: 1 / -1;
+      width: 100vw;
+      position: relative;
+      left: 50%; right: 50%;
+      margin-left: -50vw; margin-right: -50vw;
+      margin-bottom: clamp(48px, 6vw, 72px);
+    }
+    .deck-contents .m-rail-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      gap: 24px; flex-wrap: wrap;
+      margin-bottom: 22px;
+      color: var(--text-mute);
+      /* Re-inset the header text to match the chapter content edge after the
+         wrapper's full-bleed. On viewports wider than --max, the inset grows
+         to keep the eyebrow aligned with the body type above. */
+      padding-left: max(var(--gutter), calc(50vw - var(--max) / 2 + var(--gutter)));
+      padding-right: max(var(--gutter), calc(50vw - var(--max) / 2 + var(--gutter)));
+    }
+    .deck-contents .m-rail-head .m-rail-label::before {
+      content: "↳ "; color: var(--gold-deep); margin-right: 4px;
+    }
+    .deck-contents .m-rail-head .m-rail-meta { color: var(--text-mute); opacity: 0.78; }
+    .deck-contents .m-rail {
+      list-style: none; margin: 0; padding: 0;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0;
+      border-top: 0.5px solid var(--rule);
+      border-bottom: 0.5px solid var(--rule);
+    }
+    /* ANIMATABLE CUSTOM PROPERTIES — by default browsers won't interpolate
+       CSS variables during a transition (they snap end-to-end). Declaring
+       them via @property tells the browser their type, which unlocks smooth
+       interpolation. We use these for the radial-mask radius, the mask's
+       soft-edge feather, and the underline's horizontal scale. */
+    @property --hover-r {
+      syntax: '<percentage>';
+      initial-value: 0%;
+      inherits: false;
+    }
+    @property --hover-feather {
+      syntax: '<percentage>';
+      initial-value: 0%;
+      inherits: false;
+    }
+    @property --underline-w {
+      syntax: '<number>';
+      initial-value: 0;
+      inherits: false;
+    }
+
+    /* uniform padding on every cell so the dark hover-fill reads as a clean block.
+       overflow:hidden so the radial mask doesn't bleed onto neighbours. */
+    .deck-contents .m-rail li {
+      padding: 26px 22px 28px;
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+      /* cursor-tracked origin, set per-card by JS on mouseenter and frozen
+         there for the lifetime of the hover so the reverse animation lands
+         back at the entry point (a clean A→B→A motion rather than one that
+         chases the cursor out). Defaults to centre for the pre-hover state. */
+      --hover-mx: 50%;
+      --hover-my: 50%;
+    }
+    .deck-contents .m-rail li + li { border-left: 0.5px solid var(--rule); }
+
+    /* RADIAL HOVER FILL — a charcoal layer revealed by a radial-gradient
+       MASK (not clip-path + filter:blur). The mask's two-stop gradient
+       gives a naturally soft edge: solid where the wave has arrived,
+       transparent past the feather zone. This is dramatically cheaper to
+       composite than a blurred filter pass and avoids the edge-clipping
+       artefact that overflow:hidden caused on the old version. */
+    .deck-contents .m-rail li::before {
+      content: "";
+      position: absolute; inset: 0;
+      background: var(--charcoal);
+      /* The mask is INSIDE-OUT: solid from 0% up to (radius − feather),
+         then fades to transparent by the outer radius. At rest both --hover-r
+         and --hover-feather are 0%, which collapses the gradient to a sharp
+         transparent → transparent line at radius 0 (nothing visible). On
+         hover both grow together, producing an organic radial reveal with
+         a soft, naturally anti-aliased edge — no filter:blur required. */
+      -webkit-mask-image: radial-gradient(
+        circle at var(--hover-mx) var(--hover-my),
+        #000 0%,
+        #000 calc(var(--hover-r) - var(--hover-feather)),
+        transparent var(--hover-r)
+      );
+              mask-image: radial-gradient(
+        circle at var(--hover-mx) var(--hover-my),
+        #000 0%,
+        #000 calc(var(--hover-r) - var(--hover-feather)),
+        transparent var(--hover-r)
+      );
+      /* DEFAULT (mouseleave → collapse): fast, decisive ease-in. The ink
+         "snaps back" to its origin point in ~340ms so it doesn't linger
+         after the cursor has moved on. */
+      transition: --hover-r 340ms cubic-bezier(0.7, 0, 0.84, 0),
+                  --hover-feather 340ms cubic-bezier(0.7, 0, 0.84, 0);
+      z-index: 0;
+      pointer-events: none;
+    }
+    .deck-contents .m-rail li:hover::before {
+      --hover-r: 130%;
+      --hover-feather: 32%;
+      /* HOVER (mouseenter → expand): slow, organic ease-out. The ink
+         "seeps" into the card over 720ms. The asymmetric timing reads as
+         a deliberate breath in (long) and breath out (short). */
+      transition: --hover-r 720ms cubic-bezier(0.22, 1, 0.36, 1),
+                  --hover-feather 720ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* GOLD UNDERLINE — drawn via transform: scaleX from the cursor's entry
+       X-position (transform-origin = --hover-mx). Compositor-only animation,
+       no layout thrash. Arrives ~200ms after the dark fill so it reads like
+       a final flourish — the card signing itself once it's filled. */
+    .deck-contents .m-rail li::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 1px;
+      background: var(--gold);
+      transform: scaleX(var(--underline-w));
+      transform-origin: var(--hover-mx) center;
+      transition: --underline-w 260ms cubic-bezier(0.7, 0, 0.84, 0);
+      z-index: 2;
+      pointer-events: none;
+      box-shadow: 0 0 8px rgba(228,200,140,0.35);
+    }
+    .deck-contents .m-rail li:hover::after {
+      --underline-w: 1;
+      transition: --underline-w 560ms cubic-bezier(0.22, 1, 0.36, 1) 200ms;
+    }
+
+    /* Text sits above the radial mask. The colour flip is timed to the
+       fill's AVERAGE arrival at the text (~280ms into a 720ms wave from
+       a cursor origin to the centre of the cell), so the type appears to
+       be "filled in by the ink" rather than pre-coloured. */
+    .deck-contents .m-rail li > * { position: relative; z-index: 1; }
+    .deck-contents .m-num {
+      display: block;
+      color: var(--gold-deep);
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      margin-bottom: 12px;
+      transition: color 220ms cubic-bezier(0.7, 0, 0.84, 0);
+    }
+    .deck-contents .m-rail li:hover .m-num {
+      color: var(--gold);
+      transition: color 360ms cubic-bezier(0.22, 1, 0.36, 1) 240ms;
+    }
+    .deck-contents .m-name {
+      display: block;
+      font-family: var(--body);
+      font-size: 13.5px;
+      line-height: 1.4;
+      color: var(--text);
+      font-weight: 400;
+      letter-spacing: -0.005em;
+      transition: color 220ms cubic-bezier(0.7, 0, 0.84, 0);
+    }
+    .deck-contents .m-rail li:hover .m-name {
+      color: var(--bg);
+      transition: color 360ms cubic-bezier(0.22, 1, 0.36, 1) 220ms;
+    }
+
+    @media (max-width: 1080px) {
+      .deck-contents .m-rail { grid-template-columns: repeat(3, 1fr); }
+      .deck-contents .m-rail li:nth-child(3n+1) { border-left: 0; }
+    }
+    @media (max-width: 640px) {
+      .deck-contents .m-rail { grid-template-columns: repeat(2, 1fr); }
+      .deck-contents .m-rail li:nth-child(2n+1) { border-left: 0; }
+    }
+    /* Reduced motion — skip the radial mask entirely, fall back to a
+       simple opacity fade for both the fill and the underline. */
+    @media (prefers-reduced-motion: reduce) {
+      .deck-contents .m-rail li::before {
+        -webkit-mask-image: none;
+                mask-image: none;
+        opacity: 0;
+        transition: opacity 200ms linear;
+      }
+      .deck-contents .m-rail li:hover::before { opacity: 1; }
+      .deck-contents .m-rail li::after {
+        transform: scaleX(1);
+        opacity: 0;
+        transition: opacity 200ms linear;
+      }
+      .deck-contents .m-rail li:hover::after { opacity: 1; }
+    }
+
+    /* A vendor's day — a chronological axis composition that reads visually
+       distinct from the deck-contents rail above. Three time moments anchor
+       to a thin gold rule with PROPORTIONAL spacing (2-4 AM = 1 unit,
+       4-8 AM = 2 units), so the contracting margin window becomes visible
+       in the layout itself. The day's take splits off into its own outcome
+       callout with italic display weight, separated by a hairline. */
+    .ch1-day {
+      grid-column: 1 / -1;
+      margin-bottom: clamp(56px, 7vw, 96px);
+    }
+    .ch1-day .day-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      gap: 24px; flex-wrap: wrap;
+      margin-bottom: clamp(36px, 4vw, 56px);
+      color: var(--text-mute);
+    }
+    .ch1-day .day-eyebrow::before {
+      content: "↳ "; color: var(--gold-deep); margin-right: 4px;
+    }
+    .ch1-day .day-meta { opacity: 0.78; }
+    .ch1-day .day-body {
+      display: grid;
+      grid-template-columns: 8fr 4fr;
+      gap: clamp(40px, 5vw, 80px);
+      align-items: start;
+    }
+
+    /* Chronological axis — 3 moments on a proportionally-spaced gold rule */
+    .day-axis {
+      position: relative;
+      list-style: none; margin: 0;
+      padding: 18px 4px 0;
+      min-height: 168px;
+    }
+    /* The line itself, fading toward the right to echo "margins disappearing" */
+    .day-axis::before {
+      content: "";
+      position: absolute;
+      left: 5px; right: 5px; top: 25px;
+      height: 0.5px;
+      background: linear-gradient(to right,
+        var(--gold-deep) 0%,
+        var(--gold-deep) 60%,
+        rgba(176,158,126,0.22) 100%);
+    }
+    .day-mark {
+      position: absolute;
+      top: 0;
+      max-width: 22ch;
+    }
+    .day-mark[data-pos="start"] { left: 0;   text-align: left; }
+    .day-mark[data-pos="mid"]   { left: 33%; text-align: left; }
+    .day-mark[data-pos="end"]   { right: 0;  text-align: right; }
+    .dm-dot {
+      display: block;
+      width: 10px; height: 10px;
+      background: var(--gold-deep);
+      border-radius: 50%;
+      margin-bottom: 18px;
+      position: relative; z-index: 1;
+      /* Ring of background colour around each dot so the axis line appears
+         to PASS THROUGH the dot rather than crossing over it. */
+      box-shadow: 0 0 0 4px var(--bg);
+    }
+    .day-mark[data-pos="end"] .dm-dot { margin-left: auto; }
+    .dm-time {
+      display: block;
+      font-family: var(--display); font-weight: 400;
+      font-size: clamp(28px, 3.2vw, 42px);
+      line-height: 1;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+    .dm-time small {
+      font-family: var(--mono); font-size: 10.5px;
+      letter-spacing: 0.2em;
+      color: var(--text-mute);
+      margin-left: 6px;
+      font-weight: 500;
+      text-transform: uppercase;
+      vertical-align: 0.55em;
+    }
+    .dm-label {
+      display: block;
+      margin-top: 14px;
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--text-mute);
+    }
+    /* A small marker note ONLY on the middle mark — calls out the contracting
+       4-hour profit window so the spacing's meaning is explicit, not just felt. */
+    .dm-note {
+      display: block;
+      margin-top: 18px;
+      font-family: var(--mono); font-size: 9.5px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold-deep);
+    }
+    .dm-note::before { content: "↳ "; opacity: 0.75; }
+
+    /* The day's take — distinct "outcome" treatment to separate the schedule
+       (left) from its economic result (right). */
+    .day-take {
+      border-left: 0.5px solid var(--rule);
+      padding-left: clamp(28px, 3vw, 44px);
+      display: flex; flex-direction: column;
+      gap: 16px;
+    }
+    .day-take .take-label {
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--text-mute);
+    }
+    .day-take .take-fig {
+      font-family: var(--display); font-style: italic; font-weight: 400;
+      font-size: clamp(38px, 4.4vw, 60px);
+      line-height: 1;
+      color: var(--text);
+      letter-spacing: -0.025em;
+    }
+    .day-take .take-fig em {
+      color: var(--gold-deep);
+      font-style: italic;
+      margin-right: 2px;
+    }
+    .day-take .take-note {
+      color: var(--text-mute);
+      font-size: 14px;
+      line-height: 1.55;
+      font-weight: 300;
+      font-style: italic;
+      max-width: 30ch;
+    }
+
+    @media (max-width: 900px) {
+      .ch1-day .day-body { grid-template-columns: 1fr; gap: 36px; }
+      .day-take {
+        border-left: 0;
+        border-top: 0.5px solid var(--rule);
+        padding-left: 0; padding-top: 28px;
+      }
+    }
+    @media (max-width: 640px) {
+      /* Collapse the timeline into a vertical list on small screens */
+      .day-axis { min-height: auto; padding-top: 0; }
+      .day-axis::before { display: none; }
+      .day-mark {
+        position: relative;
+        left: auto !important;
+        right: auto !important;
+        text-align: left !important;
+        max-width: none;
+        padding: 18px 0;
+        border-bottom: 0.5px solid var(--rule);
+      }
+      .day-mark:last-child { border-bottom: 0; }
+      .day-mark[data-pos="end"] .dm-dot { margin-left: 0; }
+      .dm-dot { margin-bottom: 14px; }
+    }
+
+    .ch1-quote { grid-column: 1 / span 7; padding-right: clamp(0px, 4vw, 56px); }
+    .ch1-quote.is-right { padding-right: 0; padding-left: clamp(0px, 4vw, 56px); }
+    @media (max-width: 900px) {
+      .ch1-quote, .ch1-quote.is-right {
+        grid-column: 1 / -1 !important;
+        padding-right: 0; padding-left: 0;
+        margin-top: 0 !important;
+      }
+    }
+    .ch1-quote .lede { margin-bottom: 32px; }
+    .ch1-quote .lede::before { content: "“"; font-family: var(--display); font-style: italic; color: var(--gold-deep); margin-right: 8px; }
+    .ch1-quote .vendor-tag {
+      display: inline-block;
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--gold-deep);
+      margin-bottom: 18px;
+    }
+    .ch1-quote .vendor-tag::before { content: "·"; color: var(--text-mute); margin-right: 8px; }
+
+    .ch1-fieldnotes {
+      grid-column: 8 / -1;
+      display: flex; flex-direction: column; gap: 28px;
+    }
+    .fieldnote {
+      border-left: 1px solid var(--rule);
+      padding: 6px 0 6px 22px;
+    }
+    .fieldnote .meta { color: var(--text-mute); margin-bottom: 10px; }
+    .fieldnote .text { font-family: var(--display); font-size: 22px; line-height: 1.4; color: var(--text); letter-spacing: -0.005em; }
+
+    /* ----------------------- Chapter 2 — SIGNALS ------------------------ */
+    .ch2-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      grid-auto-rows: minmax(140px, auto);
+      column-gap: var(--col-gap);
+      row-gap: var(--col-gap);
+    }
+    .insight {
+      position: relative;
+      padding: 36px;
+      background: var(--surface);
+      border: 0.5px solid var(--rule);
+      display: flex; flex-direction: column; justify-content: space-between;
+      min-height: 240px;
+      transition: transform 480ms var(--ease), box-shadow 480ms var(--ease);
+    }
+    .insight:hover { transform: translateY(-3px); box-shadow: 0 24px 60px -30px rgba(26,24,20,0.18); }
+    .insight .num { font-family: var(--mono); color: var(--text-mute); margin-bottom: 16px; }
+    .insight .stmt { font-family: var(--display); font-weight: 400; font-size: clamp(22px, 2.1vw, 30px); line-height: 1.25; letter-spacing: -0.008em; color: var(--text); }
+    .insight .tag { font-family: var(--mono); color: var(--gold-deep); margin-top: 28px; }
+
+    .insight.span-7 { grid-column: span 7; min-height: 360px; padding: 56px; }
+    .insight.span-7 .stmt { font-size: clamp(28px, 3.4vw, 44px); font-style: italic; }
+    .insight.span-5 { grid-column: span 5; }
+    .insight.span-4 { grid-column: span 4; }
+    .insight.span-6 { grid-column: span 6; }
+    .insight.span-8 { grid-column: span 8; min-height: 320px; padding: 48px; }
+    .insight.span-8 .stmt { font-size: clamp(26px, 2.6vw, 36px); }
+
+    .insight.dark { background: var(--charcoal); border-color: var(--charcoal); color: var(--bg); }
+    .insight.dark .stmt { color: var(--bg); }
+    .insight.dark .num { color: var(--gold); }
+    .insight.dark .tag { color: var(--gold); }
+
+    @media (max-width: 768px) {
+      .ch2-grid { grid-template-columns: 1fr; }
+      .insight, .insight.span-7, .insight.span-5, .insight.span-4, .insight.span-6, .insight.span-8 {
+        grid-column: 1 / -1; padding: 28px; min-height: 0;
+      }
+      .insight .stmt { font-size: 22px !important; line-height: 1.3; }
+      .insight.span-7 .stmt { font-size: 26px !important; }
+    }
+
+    /* --------------------- Chapter 3 — DEFINITION ----------------------- */
+    .ch3-problem {
+      grid-column: 2 / span 10;
+      position: relative;
+      padding: clamp(40px, 6vw, 96px) 0;
+    }
+    .ch3-problem .meta {
+      color: var(--text-mute);
+      margin-bottom: 36px;
+      display: flex; gap: 18px; align-items: center;
+    }
+    .ch3-problem .meta .dash { width: 32px; height: 1px; background: var(--text-mute); display: inline-block; }
+    .ch3-problem .statement {
+      font-family: var(--display);
+      font-weight: 400;
+      font-size: clamp(34px, 5.2vw, 76px);
+      line-height: 1.1;
+      letter-spacing: -0.018em;
+      color: var(--text);
+      text-wrap: balance;
+    }
+    .ch3-problem .statement em {
+      font-style: italic;
+      color: var(--gold-deep);
+    }
+    .ch3-problem .underline {
+      display: inline; background-image: linear-gradient(var(--gold), var(--gold));
+      background-size: 100% 1px; background-position: 0 100%; background-repeat: no-repeat;
+      padding-bottom: 4px;
+    }
+    .ch3-problem .annotations {
+      margin-top: clamp(56px, 7vw, 96px);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 32px;
+      border-top: 0.5px solid var(--rule);
+      padding-top: 36px;
+    }
+    .ch3-problem .annotations .a-w { color: var(--text-mute); margin-bottom: 12px; display:flex; gap:10px; align-items:baseline; }
+    .ch3-problem .annotations .a-w .num { font-family: var(--display); font-size: 28px; color: var(--text); }
+    .ch3-problem .annotations .a-label { font-family: var(--display); font-size: 18px; line-height: 1.35; color: var(--text); }
+    .ch3-problem .annotations .a-cap { color: var(--text-mute); font-size: 13px; margin-top: 6px; line-height: 1.55; }
+    @media (max-width: 768px) {
+      .ch3-problem { grid-column: 1 / -1; padding: 24px 0; }
+      .ch3-problem .statement { font-size: clamp(28px, 7.6vw, 40px); line-height: 1.15; }
+      .ch3-problem .annotations { grid-template-columns: 1fr 1fr; gap: 24px; padding-top: 28px; }
+      .ch3-problem .annotations > div { padding: 0; }
+    }
+
+    /* ------------------------ Chapter 4 — RIGOR ------------------------- */
+    .badges {
+      grid-column: 1 / -1;
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin-bottom: clamp(48px, 6vw, 80px);
+    }
+    .badge {
+      font-family: var(--mono);
+      font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+      padding: 9px 16px;
+      border: 0.5px solid var(--text);
+      border-radius: 999px;
+      color: var(--text);
+      background: transparent;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 500ms var(--ease-out), transform 500ms var(--ease-out), background 240ms var(--ease), color 240ms var(--ease);
+    }
+    .badges.is-in .badge { opacity: 1; transform: none; }
+    .badges.is-in .badge:nth-child(1) { transition-delay: 0ms; }
+    .badges.is-in .badge:nth-child(2) { transition-delay: 100ms; }
+    .badges.is-in .badge:nth-child(3) { transition-delay: 200ms; }
+    .badges.is-in .badge:nth-child(4) { transition-delay: 300ms; }
+    .badges.is-in .badge:nth-child(5) { transition-delay: 400ms; }
+    .badges.is-in .badge:nth-child(6) { transition-delay: 500ms; }
+    .badge:hover { background: var(--text); color: var(--bg); }
+
+    .methods {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1.4fr;
+      border-top: 0.5px solid var(--rule);
+    }
+    .method {
+      display: grid;
+      grid-template-columns: subgrid;
+      grid-column: 1 / -1;
+      border-bottom: 0.5px solid var(--rule);
+      padding: 36px 0;
+      gap: var(--col-gap);
+      align-items: start;
+      transition: background 360ms var(--ease);
+    }
+    .method:hover { background: rgba(250, 247, 240, 0.7); }
+    .method .m-name {
+      font-family: var(--display);
+      font-size: clamp(28px, 3.2vw, 42px);
+      line-height: 1.05;
+      color: var(--text);
+      letter-spacing: -0.015em;
+      padding-right: 24px;
+    }
+    .method .m-name small { display: block; font-family: var(--mono); font-size: 10px; color: var(--text-mute); letter-spacing: 0.22em; text-transform: uppercase; margin-top: 8px; }
+    .method .m-purpose { color: var(--text-mute); padding-right: 18px; font-size: 15px; line-height: 1.7; }
+    .method .m-output {
+      font-family: var(--display);
+      font-style: italic;
+      font-size: clamp(18px, 1.5vw, 22px);
+      line-height: 1.45;
+      color: var(--text);
+    }
+    .method .m-output::before { content: "→ "; font-style: normal; color: var(--gold-deep); margin-right: 6px; }
+
+    @media (max-width: 768px) {
+      .methods { border-top: 0.5px solid var(--rule); }
+      .methods, .method { grid-template-columns: 1fr; gap: 10px; padding: 24px 0; }
+      .method .m-name { font-size: 28px; padding-right: 0; }
+      .method .m-purpose { font-size: 14.5px; padding-right: 0; padding-top: 4px; border-top: 0.5px solid var(--rule); }
+      .method .m-output { font-size: 17px; padding-top: 4px; }
+    }
+
+    /* --------------------- Chapter 5 — SYNTHESIS ------------------------ */
+    .ch5-masonry {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      grid-auto-rows: minmax(120px, auto);
+      column-gap: var(--col-gap);
+      row-gap: var(--col-gap);
+    }
+    .frame {
+      background: var(--surface);
+      border: 0.5px solid var(--rule);
+      padding: 32px;
+      display: flex; flex-direction: column;
+      transition: transform 480ms var(--ease), box-shadow 480ms var(--ease);
+    }
+    .frame:hover { transform: translateY(-3px); box-shadow: 0 24px 60px -30px rgba(26,24,20,0.18); }
+    .frame .f-tag { color: var(--text-mute); margin-bottom: 14px; }
+    .frame .f-title { font-family: var(--display); font-size: clamp(22px, 2.2vw, 30px); line-height: 1.2; color: var(--text); letter-spacing: -0.008em; margin-bottom: 16px; }
+    .frame .f-text { color: var(--text-mute); font-size: 15px; line-height: 1.7; }
+
+    .frame.f-qfd     { grid-column: span 7; min-height: 380px; padding: 40px; }
+    /* Ch4 rigor uses a 12-col grid (not the Ch5 masonry) — the QFD frame goes full width there. */
+    .frame.f-rigor-qfd { grid-column: 1 / -1; padding: clamp(32px, 4vw, 56px); }
+    .frame.f-snps    { grid-column: span 5; }
+    .frame.f-temporal{ grid-column: span 4; }
+    .frame.f-stake   { grid-column: span 4; }
+    .frame.f-tradeoff{ grid-column: span 4; background: var(--charcoal); border-color: var(--charcoal); }
+    .frame.f-tradeoff .f-tag, .frame.f-tradeoff .f-text { color: rgba(245,242,238,0.7); }
+    .frame.f-tradeoff .f-title { color: var(--bg); font-style: italic; }
+    .frame.f-blueprint { grid-column: span 12; padding: 48px; }
+    .frame.f-blueprint .f-title { font-size: clamp(26px, 2.8vw, 36px); }
+
+    /* QFD parameter weights diagram */
+    .qfd-bars { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+    .qfd-bar  { display: grid; grid-template-columns: 1.4fr 1fr 56px; gap: 16px; align-items: center; padding: 14px 0; border-top: 0.5px solid var(--rule); }
+    .qfd-bar .l-name { font-family: var(--display); font-size: 18px; color: var(--text); }
+    .qfd-bar .l-bar  { height: 4px; background: var(--rule); border-radius: 2px; position: relative; overflow: hidden; }
+    .qfd-bar .l-bar::after { content: ""; position: absolute; inset: 0; background: var(--gold); transform-origin: left; transform: scaleX(var(--w, 0.5)); border-radius: inherit; }
+    .qfd-bar .l-val  { font-family: var(--mono); font-size: 11px; color: var(--text-mute); letter-spacing: 0.18em; text-align: right; }
+
+    /* temporal layers */
+    .layers { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+    .layer-row { display: grid; grid-template-columns: 92px 1fr; gap: 12px; padding: 10px 0; border-top: 0.5px solid var(--rule); align-items: baseline; }
+    .layer-row .l-time { font-family: var(--mono); font-size: 10px; letter-spacing: 0.22em; color: var(--text-mute); }
+    .layer-row .l-name { font-family: var(--display); font-size: 17px; color: var(--text); line-height: 1.3; }
+
+    /* Editorial photo plate inside a frame card — floats to the bottom of the column. */
+    .f-photo {
+      margin: 32px 0 0;
+      padding: 0;
+      display: block;
+    }
+    .frame .f-photo { margin-top: auto; padding-top: 28px; }
+    .f-photo .f-photo-frame {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      background: var(--charcoal);
+    }
+    .f-photo .f-photo-frame img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: 50% 45%;
+      filter: saturate(0.9) contrast(1.02);
+      transition: transform 1200ms var(--ease);
+    }
+    .frame:hover .f-photo .f-photo-frame img { transform: scale(1.025); }
+    .f-photo figcaption {
+      margin-top: 14px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-mute);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      line-height: 1.6;
+    }
+    .f-photo figcaption .credit { color: var(--text-mute); opacity: 0.6; }
+
+    /* service blueprint — the grid grows to fill the card so the cells consume the negative space below the title */
+    .blueprint-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-auto-rows: 1fr;
+      gap: 14px;
+      margin-top: 32px;
+      flex: 1;
+      min-height: 280px;
+    }
+    /* The 2-column variant in f-blueprint is a 2×2 — give it explicit equal rows so they stretch nicely. */
+    .f-blueprint .blueprint-grid { grid-template-rows: 1fr 1fr; }
+    .bp-cell {
+      padding: clamp(20px, 2vw, 28px);
+      border: 0.5px solid var(--rule);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 14px;
+      transition: border-color 320ms var(--ease);
+    }
+    .bp-cell .bp-step { font-family: var(--mono); font-size: 10.5px; color: var(--text-mute); letter-spacing: 0.22em; }
+    .bp-cell .bp-action { font-family: var(--display); font-size: clamp(19px, 2vw, 24px); line-height: 1.25; letter-spacing: -0.005em; color: var(--text); }
+    .bp-cell.touch { background: rgba(200,184,154,0.18); border-color: rgba(200,184,154,0.4); }
+
+    /* Coda inside f-blueprint — pushes to the bottom of the column (the .frame is already flex-column).
+       Visually mirrors the photo's weight on the left card. */
+    .f-coda {
+      margin-top: auto;
+      padding-top: clamp(36px, 5vw, 56px);
+      border-top: 0.5px solid var(--rule);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .f-coda-tag {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 8px;
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      color: var(--text-mute);
+      text-transform: uppercase;
+    }
+    .f-coda-arrow { color: var(--gold); font-size: 13px; letter-spacing: 0; transform: translateY(1px); }
+    .f-coda-text {
+      font-family: var(--display);
+      font-size: clamp(20px, 2.2vw, 28px);
+      line-height: 1.3;
+      letter-spacing: -0.005em;
+      color: var(--text);
+      margin: 0;
+    }
+    .f-coda-text em { font-style: italic; color: var(--text); }
+    .f-coda-meta {
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--text-mute);
+      opacity: 0.6;
+    }
+
+    @media (max-width: 768px) {
+      .ch5-masonry { grid-template-columns: 1fr; }
+      .frame { grid-column: 1 / -1 !important; padding: 24px; min-height: 0 !important; }
+      .frame.f-qfd { padding: 24px; }
+      .frame.f-blueprint { padding: 24px; }
+      .frame .f-title { font-size: 20px !important; }
+      .qfd-bar { grid-template-columns: 1.3fr 1fr 48px; gap: 10px; padding: 10px 0; }
+      .qfd-bar .l-name { font-size: 14px; }
+      .blueprint-grid { grid-template-columns: 1fr 1fr; gap: 10px; flex: 0 1 auto; min-height: 0; }
+      .bp-cell { padding: 14px; }
+      .bp-cell .bp-action { font-size: 15px !important; }
+      .f-coda { padding-top: 28px; gap: 10px; }
+      .f-coda-text { font-size: 18px !important; }
+    }
+
+    /* --------------------- Chapter 6 — RESOLUTION ----------------------- */
+    .ch6-reveal {
+      grid-column: 1 / -1;
+      position: relative;
+      min-height: 78vh;
+      background: var(--charcoal);
+      color: var(--bg);
+      padding: clamp(56px, 8vw, 120px);
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .ch6-reveal::before {
+      content: "";
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(60% 60% at 80% 10%, rgba(200,184,154,0.22) 0%, transparent 60%),
+        radial-gradient(50% 80% at 10% 100%, rgba(250,247,240,0.06) 0%, transparent 60%);
+      z-index: 0;
+    }
+    .ch6-reveal-inner { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(12, 1fr); column-gap: var(--col-gap); row-gap: clamp(40px, 5vw, 72px); }
+    .ch6-eyebrow { grid-column: 1 / -1; color: var(--gold); }
+    .ch6-headline {
+      grid-column: 1 / span 8;
+      font-family: var(--display);
+      font-style: italic;
+      font-size: clamp(36px, 5.4vw, 76px);
+      line-height: 1.06;
+      letter-spacing: -0.015em;
+      color: var(--bg);
+      text-wrap: balance;
+    }
+    .ch6-meta { grid-column: 9 / -1; align-self: end; color: rgba(245,242,238,0.7); }
+    .ch6-meta .row { display: flex; justify-content: space-between; gap: 18px; padding: 14px 0; border-top: 0.5px solid rgba(245,242,238,0.18); }
+    .ch6-meta .row > span:last-child { text-align: right; }
+
+    .ch6-concepts {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      column-gap: var(--col-gap);
+      row-gap: var(--col-gap);
+      margin-top: clamp(56px, 7vw, 96px);
+    }
+    .concept {
+      grid-column: span 6;
+      background: var(--surface);
+      border: 0.5px solid var(--rule);
+      padding: 48px;
+      display: flex; flex-direction: column; gap: 24px;
+      min-height: 360px;
+      transition: transform 520ms var(--ease), box-shadow 520ms var(--ease);
+    }
+    .concept:hover { transform: translateY(-4px); box-shadow: 0 28px 70px -36px rgba(26,24,20,0.22); }
+    .concept.concept-winner {
+      grid-column: 1 / -1;
+      background: linear-gradient(180deg, var(--surface) 0%, rgba(200,184,154,0.10) 100%);
+      border: 0.5px solid rgba(200,184,154,0.55);
+      padding: clamp(40px, 4.5vw, 64px);
+    }
+    .winner-pill {
+      display: inline-block;
+      padding: 4px 10px;
+      margin-right: 12px;
+      border-radius: 999px;
+      background: var(--charcoal);
+      color: var(--gold);
+      font-family: var(--mono);
+      font-size: 9.5px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      vertical-align: middle;
+    }
+    .concept .c-num { font-family: var(--mono); color: var(--text-mute); }
+    .concept .c-name { font-family: var(--display); font-style: italic; font-size: clamp(28px, 2.8vw, 38px); line-height: 1.15; color: var(--text); letter-spacing: -0.01em; }
+    .concept .c-desc { color: var(--text-mute); font-size: 15px; line-height: 1.75; }
+    .concept .c-points { display: flex; gap: 24px; margin-top: auto; padding-top: 24px; border-top: 0.5px solid var(--rule); flex-wrap: wrap; }
+    .concept .c-points .pt { flex: 1; min-width: 120px; }
+    .concept .c-points .pt .pl { font-family: var(--mono); font-size: 10px; color: var(--text-mute); letter-spacing: 0.22em; text-transform: uppercase; }
+    .concept .c-points .pt .pv { font-family: var(--display); font-size: 18px; color: var(--text); margin-top: 4px; line-height: 1.25; }
+
+    /* Hand-drawn concept sketches pulled from the TRIZ deck.
+       Winner card uses a 2-col grid (text + sketch). Runner-ups have a small sketch at the top. */
+    .concept-winner-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+      gap: clamp(32px, 4vw, 64px);
+      align-items: start;
+    }
+    .concept-winner-grid > .cw-text { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+
+    /* Full-width attribute bar across the bottom of the winner card. */
+    .concept .c-points.cw-points {
+      margin-top: clamp(32px, 4vw, 48px);
+      padding-top: clamp(24px, 2.5vw, 32px);
+      gap: clamp(24px, 3vw, 48px);
+    }
+    .concept .c-points.cw-points .pt { flex: 1 1 0; min-width: 140px; }
+
+    .concept-sketch { margin: 0; min-width: 0; }
+    .concept-sketch .sketch-frame {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      background: #FAFAF8;
+      border: 0.5px solid rgba(26, 24, 20, 0.12);
+      overflow: hidden;
+      box-shadow: 0 18px 48px -28px rgba(26,24,20,0.22);
+      transition: transform 600ms var(--ease), box-shadow 600ms var(--ease);
+    }
+    .concept-sketch .sketch-frame img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      mix-blend-mode: multiply;
+    }
+    .concept:hover .concept-sketch .sketch-frame {
+      transform: translateY(-2px);
+      box-shadow: 0 26px 60px -30px rgba(26,24,20,0.28);
+    }
+    .concept-sketch figcaption {
+      margin-top: 14px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-mute);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      line-height: 1.6;
+    }
+    .concept-sketch figcaption .credit { opacity: 0.6; }
+
+    /* Runner-up cards: sketch sits at the top, then text flows below */
+    .concept .concept-sketch.is-top { margin: -8px -8px 4px; }
+    .concept .concept-sketch.is-top .sketch-frame { aspect-ratio: 16 / 11; }
+
+    .fields {
+      grid-column: 1 / -1;
+      margin-top: clamp(72px, 9vw, 120px);
+      padding-top: clamp(48px, 6vw, 80px);
+      border-top: 0.5px solid var(--rule);
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      column-gap: var(--col-gap);
+      row-gap: clamp(32px, 4vw, 56px);
+    }
+    .fields .td-label { grid-column: 1 / span 4; color: var(--text-mute); }
+    .fields .td-text { grid-column: 5 / span 8; font-family: var(--display); font-size: clamp(28px, 3.6vw, 48px); line-height: 1.15; color: var(--text); letter-spacing: -0.012em; text-wrap: balance; }
+    .fields .td-text em { font-style: italic; color: var(--gold-deep); }
+
+    @media (max-width: 768px) {
+      .concept { grid-column: 1 / -1; padding: 28px; min-height: 0; }
+      .concept.concept-winner { padding: 28px; }
+      .concept .c-name { font-size: 22px; }
+      .ch6-reveal { padding: 36px 24px; min-height: 0; }
+      .ch6-reveal-inner { row-gap: 28px; }
+      .ch6-headline, .ch6-meta { grid-column: 1 / -1; font-size: clamp(28px, 7.2vw, 38px) !important; }
+      .ch6-meta { font-size: 11px !important; }
+      .ch6-concepts { margin-top: 40px; }
+      .concept-winner-grid { grid-template-columns: 1fr; gap: 24px; }
+      .concept .concept-sketch.is-top { margin: -10px -10px 12px; }
+      .fields { margin-top: 56px; padding-top: 40px; }
+      .fields .td-label, .fields .td-text { grid-column: 1 / -1; }
+      .fields .td-text { font-size: clamp(24px, 6.8vw, 34px); }
+      .winner-pill { font-size: 9px; padding: 3px 8px; margin-right: 8px; }
+    }
+
+    /* ====================== FEATURED SLIDE (inline) ===================== */
+    .feature {
+      margin: 0;
+      position: relative;
+      display: flex; flex-direction: column;
+      gap: 14px;
+      transition: transform 480ms var(--ease);
+    }
+    .feature-frame {
+      position: relative;
+      border-radius: 4px;
+      overflow: hidden;
+      background: #fff;
+      border: 0.5px solid var(--rule);
+      box-shadow: 0 24px 60px -36px rgba(26,24,20,0.22);
+      aspect-ratio: 16 / 9;
+      transition: box-shadow 480ms var(--ease), transform 480ms var(--ease);
+      cursor: none;
+    }
+    .feature-frame img {
+      width: 100%; height: 100%;
+      object-fit: contain; object-position: center;
+      display: block;
+      background: #fff;
+      transition: transform 800ms var(--ease);
+    }
+    .feature-frame:hover { box-shadow: 0 30px 70px -28px rgba(26,24,20,0.28); transform: translateY(-3px); }
+    .feature-frame:hover img { transform: scale(1.02); }
+    .feature-frame::after {
+      content: "↗  Open full slide";
+      position: absolute;
+      left: 16px; bottom: 16px;
+      font-family: var(--mono);
+      font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+      padding: 8px 14px;
+      background: rgba(250, 247, 240, 0.94);
+      color: var(--text);
+      border-radius: 999px;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 280ms var(--ease), transform 280ms var(--ease);
+      pointer-events: none;
+      backdrop-filter: blur(6px);
+    }
+    .feature-frame:hover::after { opacity: 1; transform: translateY(0); }
+    /* Non-clickable frame: hide the "open full slide" affordance and disable hover lift, */
+    /* so the image reads as inline context, not as a portal into the lightbox. */
+    .feature-frame.is-static { cursor: default; }
+    .feature-frame.is-static::after { display: none; }
+    .feature-frame.is-static:hover { box-shadow: 0 24px 60px -36px rgba(26,24,20,0.22); transform: none; }
+    .feature-frame.is-static:hover img { transform: none; }
+    .feature-cap {
+      display: flex; flex-direction: column; gap: 6px;
+      padding: 0 4px;
+    }
+    .feature-cap .f-tag { font-family: var(--mono); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-mute); }
+    .feature-cap .f-text { font-family: var(--display); font-size: clamp(17px, 1.4vw, 22px); line-height: 1.4; color: var(--text); letter-spacing: -0.005em; max-width: 56ch; }
+    .feature-cap .f-text em { font-style: italic; color: var(--gold-deep); }
+
+    /* For full-width features, switch the caption to a 2-col editorial layout —
+       mono label on the left, body text on the right — so the caption fills the whole frame width. */
+    .feature.f-full .feature-cap {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) minmax(0, 2.6fr);
+      column-gap: clamp(24px, 3.5vw, 64px);
+      row-gap: 6px;
+      align-items: baseline;
+      padding: 0 4px;
+    }
+    .feature.f-full .feature-cap .f-tag { padding-top: 6px; }
+    .feature.f-full .feature-cap .f-text { max-width: 72ch; }
+
+    /* feature placements within 12-col grid */
+    .feature.f-full      { grid-column: 1 / -1; }
+    .feature.f-half-l    { grid-column: 1 / span 6; }
+    .feature.f-half-r    { grid-column: 7 / span 6; }
+    .feature.f-third-l   { grid-column: 1 / span 4; }
+    .feature.f-third-r   { grid-column: 5 / span 8; }
+    .feature.f-seven-r   { grid-column: 6 / span 7; }
+    .feature.f-seven-l   { grid-column: 1 / span 7; }
+
+    /* ----- inline mini-slider: groups related slides into one frame ----- */
+    /* Used in Ch1 for the Cluster of Issues spread (slides 5 + 4 of Deck 01). */
+    .feature-frame.slider { background: var(--surface); }
+    .feature-frame.slider .slider-track {
+      display: flex;
+      width: 100%; height: 100%;
+      transition: transform 720ms var(--ease);
+      will-change: transform;
+    }
+    .feature-frame.slider .slider-slide {
+      flex: 0 0 100%;
+      width: 100%; height: 100%;
+      object-fit: contain;
+      object-position: center;
+      background: #fff;
+      display: block;
+    }
+    /* disable the default img:hover scale inside a slider — the track handles motion */
+    .feature-frame.slider:hover .slider-slide { transform: none; }
+
+    .slider-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: rgba(250, 247, 240, 0.92);
+      -webkit-backdrop-filter: blur(8px);
+              backdrop-filter: blur(8px);
+      border: 0.5px solid var(--gold);
+      color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      cursor: none;
+      padding: 0;
+      z-index: 3;
+      box-shadow: 0 8px 24px -12px rgba(26,24,20,0.18);
+      transition: background 260ms var(--ease), border-color 260ms var(--ease), transform 260ms var(--ease), box-shadow 260ms var(--ease);
+    }
+    .slider-btn svg { width: 22px; height: 22px; display: block; }
+    .slider-btn:hover {
+      background: var(--bg);
+      border-color: var(--gold-deep);
+      transform: translateY(-50%) scale(1.06);
+      box-shadow: 0 14px 32px -10px rgba(26,24,20,0.28);
+    }
+    .slider-btn:focus-visible {
+      outline: 1px solid var(--gold-deep);
+      outline-offset: 3px;
+    }
+    .slider-prev { left: 22px; }
+    .slider-next { right: 22px; }
+
+    .slider-counter {
+      position: absolute;
+      top: 18px; right: 18px;
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--text);
+      background: rgba(250, 247, 240, 0.92);
+      -webkit-backdrop-filter: blur(8px);
+              backdrop-filter: blur(8px);
+      padding: 7px 12px;
+      border: 0.5px solid var(--rule);
+      z-index: 3;
+      font-feature-settings: "tnum" 1;
+    }
+    .feature.f-eight-l   { grid-column: 1 / span 8; }
+    .feature.f-four-r    { grid-column: 9 / span 4; }
+
+    @media (max-width: 768px) {
+      .feature { grid-column: 1 / -1 !important; }
+      /* on mobile, drop the 16:9 frame so tall PowerPoint slides stop wasting half the screen on whitespace */
+      .feature-frame { aspect-ratio: 16 / 10 !important; }
+      .feature-cap .f-text { font-size: 16px; }
+      .feature-frame::after { font-size: 9px; padding: 6px 10px; }
+      /* collapse the 2-col full-feature caption back to a stack on mobile */
+      .feature.f-full .feature-cap { grid-template-columns: 1fr; column-gap: 0; }
+      .feature.f-full .feature-cap .f-tag { padding-top: 0; }
+      /* slider — shrink arrow buttons + counter on small screens */
+      .slider-btn { width: 42px; height: 42px; }
+      .slider-btn svg { width: 18px; height: 18px; }
+      .slider-prev { left: 10px; }
+      .slider-next { right: 10px; }
+      .slider-counter { top: 10px; right: 10px; font-size: 9px; padding: 5px 9px; }
+    }
+
+    /* ============================ SLIDE DRAWER ========================== */
+    .drawer-scrim {
+      position: fixed; inset: 0;
+      background: rgba(26,24,20,0.42);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 360ms var(--ease);
+      z-index: 950;
+      -webkit-backdrop-filter: blur(2px);
+      backdrop-filter: blur(2px);
+    }
+    .drawer-scrim.is-open { opacity: 1; pointer-events: auto; }
+
+    .drawer {
+      position: fixed; left: 0; right: 0; bottom: 0;
+      height: 90vh; height: 90svh;
+      background: var(--surface);
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -30px 80px -20px rgba(0,0,0,0.25);
+      transform: translateY(100%);
+      transition: transform 520ms var(--ease-out);
+      z-index: 960;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .drawer.is-open { transform: translateY(0); }
+
+    .drawer-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px clamp(20px, 4vw, 48px);
+      border-bottom: 0.5px solid var(--rule);
+      gap: 24px;
+    }
+    .drawer-head .d-meta { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
+    .drawer-head .d-ch { font-family: var(--mono); color: var(--text-mute); }
+    .drawer-head .d-title { font-family: var(--display); font-style: italic; font-size: clamp(22px, 2.4vw, 32px); color: var(--text); letter-spacing: -0.008em; }
+    .drawer-head .d-count { font-family: var(--mono); color: var(--text-mute); }
+    .drawer-close {
+      width: 40px; height: 40px;
+      border: 0.5px solid var(--text);
+      border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      transition: background 240ms var(--ease), color 240ms var(--ease);
+    }
+    .drawer-close:hover { background: var(--text); color: var(--bg); }
+    .drawer-close svg { width: 14px; height: 14px; }
+
+    /* Wrap around drawer-track + edge-fades so the rail uses the full available height. */
+    .drawer-rail-wrap {
+      flex: 1;
+      position: relative;
+      min-height: 0;
+    }
+    .drawer-track {
+      position: absolute; inset: 0;
+      overflow-x: auto; overflow-y: hidden;
+      padding: clamp(28px, 4vh, 56px) clamp(28px, 4vw, 56px);
+      display: flex;
+      align-items: center;
+      gap: clamp(20px, 2.4vw, 36px);
+      scroll-snap-type: x mandatory;
+      scrollbar-width: thin;
+      scrollbar-color: var(--rule) transparent;
+    }
+    .drawer-track::-webkit-scrollbar { height: 6px; }
+    .drawer-track::-webkit-scrollbar-track { background: transparent; }
+    .drawer-track::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 999px; }
+    /* Edge fades hint at horizontal scroll on both sides. */
+    .drawer-rail-wrap::before,
+    .drawer-rail-wrap::after {
+      content: "";
+      position: absolute; top: 0; bottom: 0;
+      width: clamp(28px, 4vw, 56px);
+      pointer-events: none;
+      z-index: 2;
+    }
+    .drawer-rail-wrap::before { left: 0;  background: linear-gradient(to right, var(--surface), rgba(250,250,248,0)); }
+    .drawer-rail-wrap::after  { right: 0; background: linear-gradient(to left,  var(--surface), rgba(250,250,248,0)); }
+
+    .thumb {
+      flex: 0 0 auto;
+      height: clamp(360px, 58vh, 560px);
+      aspect-ratio: 16 / 9;
+      border: 0.5px solid var(--rule);
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      scroll-snap-align: center;
+      position: relative;
+      transition: transform 320ms var(--ease), border-color 320ms var(--ease), box-shadow 320ms var(--ease);
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: contain; display: block; background: #fff; }
+    .thumb:hover { transform: translateY(-4px); border-color: var(--gold); box-shadow: 0 30px 60px -28px rgba(26,24,20,0.28); }
+    .thumb .t-meta {
+      position: absolute; left: 14px; top: 14px;
+      display: flex; align-items: center; gap: 8px;
+      font-family: var(--mono); font-size: 10.5px; color: var(--text);
+      background: rgba(250, 247, 240, 0.94);
+      padding: 5px 10px; border-radius: 999px;
+      letter-spacing: 0.2em;
+      backdrop-filter: blur(6px);
+    }
+    .thumb .t-deck {
+      position: absolute; right: 14px; bottom: 14px;
+      font-family: var(--mono); font-size: 9.5px;
+      background: rgba(26,24,20,0.82);
+      color: var(--bg);
+      padding: 5px 10px; border-radius: 999px;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      backdrop-filter: blur(6px);
+    }
+    /* "Click to open" hint that appears on hover — signals the thumb opens the full lightbox. */
+    .thumb::after {
+      content: "Click to open";
+      position: absolute;
+      left: 50%; bottom: 16px;
+      transform: translateX(-50%) translateY(8px);
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--text);
+      background: rgba(250, 247, 240, 0.96);
+      padding: 6px 12px; border-radius: 999px;
+      border: 0.5px solid var(--rule);
+      opacity: 0;
+      transition: opacity 240ms var(--ease), transform 240ms var(--ease);
+      pointer-events: none;
+    }
+    .thumb:hover::after { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .thumb.is-section-break {
+      flex: 0 0 1px;
+      align-self: stretch;
+      margin: clamp(32px, 5vh, 64px) clamp(8px, 1vw, 20px);
+      aspect-ratio: auto;
+      background: var(--rule);
+      border: none;
+      box-shadow: none;
+      border-radius: 0;
+      pointer-events: none;
+    }
+    .thumb.is-section-break::after { display: none; }
+
+    @media (max-width: 768px) {
+      .drawer { height: 100vh; height: 100svh; border-radius: 0; }
+      .drawer-track { gap: 14px; padding: 20px 16px; }
+      .drawer-rail-wrap::before, .drawer-rail-wrap::after { width: 18px; }
+      .thumb { height: 48vh; min-height: 240px; border-radius: 6px; }
+      .thumb::after { display: none; }
+    }
+
+    /* ============================ LIGHTBOX ============================== */
+    .lightbox {
+      position: fixed; inset: 0;
+      background: rgba(20,18,15,0.92);
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+      z-index: 980;
+      display: flex; flex-direction: column;
+      opacity: 0; pointer-events: none;
+      transition: opacity 280ms var(--ease);
+    }
+    .lightbox.is-open { opacity: 1; pointer-events: auto; }
+    .lb-head {
+      flex: 0 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px clamp(20px, 4vw, 48px);
+      color: var(--bg);
+      gap: 18px;
+    }
+    .lb-head .lb-info { display: flex; gap: 18px; align-items: baseline; flex-wrap: wrap; }
+    .lb-head .lb-ch { font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); }
+    .lb-head .lb-pos { font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em; color: rgba(245,242,238,0.7); }
+    .lb-close {
+      width: 40px; height: 40px;
+      border: 0.5px solid rgba(245,242,238,0.5);
+      border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--bg);
+      transition: background 220ms var(--ease), color 220ms var(--ease), border-color 220ms var(--ease);
+    }
+    .lb-close:hover { background: var(--bg); color: var(--charcoal); border-color: var(--bg); }
+    .lb-close svg { width: 14px; height: 14px; }
+    .lb-stage {
+      flex: 1; min-height: 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 clamp(20px, 4vw, 64px) 24px;
+      position: relative;
+    }
+    .lb-img-wrap {
+      max-width: min(1280px, 100%);
+      max-height: 100%;
+      width: 100%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .lb-img-wrap img {
+      max-width: 100%;
+      max-height: 64vh;
+      object-fit: contain;
+      box-shadow: 0 30px 70px -30px rgba(0,0,0,0.6);
+      background: #fff;
+      border-radius: 4px;
+    }
+    .lb-arrow {
+      position: absolute; top: 50%;
+      transform: translateY(-50%);
+      width: 48px; height: 48px;
+      border: 0.5px solid rgba(245,242,238,0.4);
+      border-radius: 50%;
+      color: var(--bg);
+      display: inline-flex; align-items: center; justify-content: center;
+      transition: background 220ms var(--ease), color 220ms var(--ease), border-color 220ms var(--ease);
+    }
+    .lb-arrow:hover { background: var(--bg); color: var(--charcoal); border-color: var(--bg); }
+    .lb-arrow.prev { left: clamp(12px, 2vw, 36px); }
+    .lb-arrow.next { right: clamp(12px, 2vw, 36px); }
+    .lb-arrow svg { width: 14px; height: 14px; }
+
+    /* ----- Filmstrip rail — click any slide to jump; the current one is highlighted. */
+    .lb-filmstrip {
+      flex: 0 0 auto;
+      background: rgba(245,242,238,0.04);
+      border-top: 0.5px solid rgba(245,242,238,0.08);
+      padding: 12px clamp(20px, 3vw, 40px) 10px;
+      position: relative;
+    }
+    .lb-filmstrip::before,
+    .lb-filmstrip::after {
+      content: ""; position: absolute; top: 0; bottom: 0;
+      width: clamp(20px, 3vw, 40px);
+      pointer-events: none; z-index: 2;
+    }
+    .lb-filmstrip::before { left: 0;  background: linear-gradient(to right, rgba(20,18,15,0.92), rgba(20,18,15,0)); }
+    .lb-filmstrip::after  { right: 0; background: linear-gradient(to left,  rgba(20,18,15,0.92), rgba(20,18,15,0)); }
+    .lb-filmstrip-track {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 4px 0 6px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(245,242,238,0.25) transparent;
+    }
+    .lb-filmstrip-track::-webkit-scrollbar { height: 4px; }
+    .lb-filmstrip-track::-webkit-scrollbar-track { background: transparent; }
+    .lb-filmstrip-track::-webkit-scrollbar-thumb { background: rgba(245,242,238,0.2); border-radius: 999px; }
+    .lb-mini {
+      flex: 0 0 auto;
+      height: 72px;
+      aspect-ratio: 16 / 9;
+      border: 1px solid rgba(245,242,238,0.18);
+      border-radius: 4px;
+      background: #fff;
+      overflow: hidden;
+      position: relative;
+      padding: 0;
+      opacity: 0.5;
+      cursor: pointer;
+      transition: opacity 220ms var(--ease), border-color 220ms var(--ease), transform 220ms var(--ease), box-shadow 220ms var(--ease);
+    }
+    .lb-mini img { width: 100%; height: 100%; object-fit: cover; display: block; background: #fff; }
+    .lb-mini:hover { opacity: 0.95; border-color: rgba(200,184,154,0.6); transform: translateY(-2px); }
+    .lb-mini.is-active {
+      opacity: 1;
+      border: 2px solid var(--gold);
+      transform: translateY(-4px);
+      box-shadow: 0 10px 24px -10px rgba(200,184,154,0.55);
+    }
+    .lb-mini-num {
+      position: absolute; left: 4px; top: 4px;
+      font-family: var(--mono); font-size: 9px;
+      letter-spacing: 0.16em;
+      color: rgba(26,24,20,0.88);
+      background: rgba(250, 247, 240, 0.94);
+      padding: 2px 5px; border-radius: 999px;
+      pointer-events: none;
+    }
+    .lb-mini.is-active .lb-mini-num { background: var(--gold); color: var(--text); }
+
+    .lb-foot {
+      flex: 0 0 auto;
+      padding: 10px clamp(20px, 4vw, 48px) 18px;
+      color: rgba(245,242,238,0.6);
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+      display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap;
+    }
+
+    @media (max-width: 768px) {
+      .lb-img-wrap img { max-height: 50vh; }
+      .lb-arrow { width: 40px; height: 40px; }
+      .lb-filmstrip { padding: 8px 12px 6px; }
+      .lb-mini { height: 54px; }
+      .lb-filmstrip::before, .lb-filmstrip::after { width: 14px; }
+    }
+
+    /* ======================= OVERVIEW (process decks) =================== */
+    .overview {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      z-index: 970;
+      opacity: 0; pointer-events: none;
+      transition: opacity 420ms var(--ease);
+      overflow-y: auto;
+    }
+    .overview.is-open { opacity: 1; pointer-events: auto; }
+
+    .overview-head {
+      position: sticky; top: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px var(--gutter);
+      background: rgba(245,242,238,0.92);
+      -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+      border-bottom: 0.5px solid var(--rule);
+      z-index: 2;
+    }
+    .overview-head .title { font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text); }
+
+    .overview-grid {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: clamp(56px, 7vw, 104px) var(--gutter) clamp(80px, 10vw, 140px);
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .overview-intro {
+      max-width: 920px;
+      padding-bottom: clamp(56px, 7vw, 96px);
+      display: flex; flex-direction: column; gap: 18px;
+    }
+    .overview-intro .ov-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-mute); }
+    .overview-intro h2 { font-family: var(--display); font-style: italic; font-size: clamp(40px, 5.6vw, 76px); margin: 4px 0 0; letter-spacing: -0.018em; line-height: 1.02; color: var(--text); }
+    .overview-intro p { max-width: 640px; color: var(--text-mute); font-size: 15.5px; line-height: 1.75; margin: 0; }
+    .overview-intro .ov-scroll-hint {
+      display: inline-flex; align-items: center; gap: 10px;
+      margin-top: 18px;
+      font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.24em; text-transform: uppercase;
+      color: var(--text-mute);
+    }
+    .overview-intro .ov-scroll-hint::before { content: ""; width: 1px; height: 28px; background: var(--text-mute); opacity: 0.5; }
+
+    /* ----- Each deck is a full-width "spread" — number + title on the left, full filmstrip on the right. */
+    .ov-deck {
+      border-top: 0.5px solid var(--rule);
+      padding: clamp(40px, 5vw, 72px) 0 clamp(40px, 5vw, 64px);
+      transition: background 320ms var(--ease);
+    }
+    .ov-deck:last-child { border-bottom: 0.5px solid var(--rule); }
+    .ov-deck-grid {
+      display: grid;
+      grid-template-columns: 5fr 7fr;
+      column-gap: clamp(32px, 5vw, 72px);
+      row-gap: clamp(24px, 3vw, 40px);
+      align-items: start;
+    }
+    .ov-deck-info { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+    .od-tag {
+      font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--text-mute);
+    }
+    .od-num {
+      font-family: var(--display); font-style: italic;
+      font-size: clamp(96px, 12vw, 168px);
+      line-height: 0.88; letter-spacing: -0.025em;
+      color: var(--text);
+      margin: 6px 0 2px;
+    }
+    .od-title {
+      font-family: var(--display); font-style: italic;
+      font-size: clamp(28px, 3vw, 42px);
+      line-height: 1.1; letter-spacing: -0.012em;
+      color: var(--text);
+      margin: 0;
+    }
+    .od-source {
+      font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--text-mute);
+      margin-top: 16px;
+    }
+    .od-pdf {
+      font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--text-mute);
+      opacity: 0.55;
+      margin-top: 6px;
+    }
+    .od-open {
+      display: inline-flex; align-items: center; gap: 14px;
+      margin-top: 24px;
+      padding: 14px 24px;
+      border: 0.5px solid var(--text);
+      border-radius: 999px;
+      font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--text);
+      background: transparent;
+      cursor: pointer;
+      transition: background 240ms var(--ease), color 240ms var(--ease), transform 240ms var(--ease);
+      align-self: flex-start;
+    }
+    .od-open:hover { background: var(--text); color: var(--bg); }
+    .od-open .arrow {
+      display: inline-block; transition: transform 240ms var(--ease);
+      font-family: var(--mono); font-size: 14px; line-height: 1;
+    }
+    .od-open:hover .arrow { transform: translateX(4px); }
+
+    /* Strip — every slide in the deck, click any one to open it in the lightbox. */
+    .ov-strip-wrap {
+      position: relative;
+      min-width: 0;
+    }
+    .ov-strip-wrap::before,
+    .ov-strip-wrap::after {
+      content: ""; position: absolute; top: 0; bottom: 14px;
+      width: 36px; pointer-events: none; z-index: 2;
+    }
+    .ov-strip-wrap::before { left: 0;  background: linear-gradient(to right, var(--bg), rgba(245,242,238,0)); }
+    .ov-strip-wrap::after  { right: 0; background: linear-gradient(to left,  var(--bg), rgba(245,242,238,0)); }
+    .ov-strip {
+      display: flex; gap: 14px;
+      overflow-x: auto; overflow-y: hidden;
+      padding: 4px 8px 14px;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: thin;
+      scrollbar-color: var(--rule) transparent;
+    }
+    .ov-strip::-webkit-scrollbar { height: 4px; }
+    .ov-strip::-webkit-scrollbar-track { background: transparent; }
+    .ov-strip::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 999px; }
+    .od-thumb {
+      flex: 0 0 auto;
+      height: clamp(160px, 18vw, 220px);
+      aspect-ratio: 16 / 9;
+      border-radius: 6px;
+      background: #fff;
+      border: 0.5px solid var(--rule);
+      overflow: hidden;
+      position: relative;
+      padding: 0;
+      cursor: pointer;
+      scroll-snap-align: start;
+      transition: transform 320ms var(--ease), border-color 320ms var(--ease), box-shadow 320ms var(--ease);
+    }
+    .od-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; background: #fff; }
+    .od-thumb:hover { transform: translateY(-4px); border-color: var(--gold); box-shadow: 0 18px 44px -22px rgba(26,24,20,0.28); }
+    .od-thumb-num {
+      position: absolute; left: 10px; top: 10px;
+      font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.2em;
+      color: var(--text);
+      background: rgba(250,247,240,0.94);
+      padding: 3px 8px; border-radius: 999px;
+      backdrop-filter: blur(4px);
+      pointer-events: none;
+    }
+    .od-thumb-section {
+      flex: 0 0 1px;
+      align-self: stretch;
+      background: var(--rule);
+      border: none; border-radius: 0;
+      margin: 8px 6px 22px;
+      pointer-events: none;
+    }
+    .od-strip-meta {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 8px;
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--text-mute);
+      opacity: 0.7;
+    }
+
+    @media (max-width: 900px) {
+      .ov-deck-grid { grid-template-columns: 1fr; gap: 28px; }
+      .od-num { font-size: clamp(72px, 18vw, 120px); }
+      .od-thumb { height: clamp(120px, 30vw, 180px); }
+    }
+    @media (max-width: 768px) {
+      .ov-strip-wrap::before, .ov-strip-wrap::after { width: 20px; }
+    }
+
+    /* ============================ CLOSING / CTA ========================= */
+    .closing {
+      position: relative;
+      max-width: var(--max);
+      margin: clamp(96px, 14vw, 200px) auto 0;
+      padding: clamp(64px, 9vw, 120px) var(--gutter) clamp(56px, 8vw, 96px);
+    }
+    .closing::before {
+      content: "";
+      position: absolute;
+      top: 0; left: var(--gutter); right: var(--gutter);
+      height: 0.5px; background: var(--rule);
+    }
+    .closing-inner {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      column-gap: var(--col-gap);
+      row-gap: clamp(40px, 5vw, 72px);
+    }
+    .closing .c-label { grid-column: 1 / -1; color: var(--text-mute); }
+    .closing .c-head {
+      grid-column: 1 / span 9;
+      font-family: var(--display);
+      font-weight: 400;
+      font-style: italic;
+      font-size: clamp(36px, 5.8vw, 84px);
+      line-height: 1.04;
+      letter-spacing: -0.015em;
+      color: var(--text);
+      margin: 0;
+      text-wrap: balance;
+    }
+    .closing .c-head em { font-style: italic; color: var(--gold-deep); }
+    .closing .c-nexts {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: clamp(24px, 3vw, 48px);
+      margin-top: clamp(40px, 5vw, 64px);
+    }
+    .closing .c-next {
+      padding: 32px;
+      background: var(--surface);
+      border: 0.5px solid var(--rule);
+      transition: transform 420ms var(--ease), box-shadow 420ms var(--ease);
+    }
+    .closing .c-next:hover { transform: translateY(-3px); box-shadow: 0 24px 60px -30px rgba(26,24,20,0.16); }
+    .closing .c-next .n-num { font-family: var(--mono); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-deep); }
+    .closing .c-next .n-title { font-family: var(--display); font-size: clamp(20px, 2vw, 26px); line-height: 1.25; color: var(--text); margin: 14px 0 12px; letter-spacing: -0.005em; }
+    .closing .c-next .n-text { color: var(--text-mute); font-size: 14.5px; line-height: 1.7; }
+    .closing .c-actions {
+      grid-column: 1 / -1;
+      margin-top: clamp(40px, 5vw, 64px);
+      display: flex; gap: 18px; flex-wrap: wrap;
+    }
+    .cta-btn {
+      display: inline-flex; align-items: center; gap: 12px;
+      font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+      padding: 14px 22px;
+      border: 0.5px solid var(--text);
+      border-radius: 999px;
+      color: var(--text);
+      transition: background 240ms var(--ease), color 240ms var(--ease), gap 240ms var(--ease);
+    }
+    .cta-btn:hover { background: var(--text); color: var(--bg); gap: 18px; }
+    .cta-btn.primary { background: var(--text); color: var(--bg); }
+    .cta-btn.primary:hover { background: var(--charcoal); color: var(--gold); }
+    @media (max-width: 768px) {
+      .closing { padding: clamp(48px, 12vw, 80px) var(--gutter); }
+      .closing .c-head { grid-column: 1 / -1; font-size: clamp(30px, 8.4vw, 48px); }
+      .closing .c-nexts { grid-template-columns: 1fr; gap: 14px; }
+      .closing .c-next { padding: 24px; }
+      .closing .c-next .n-title { font-size: 19px; }
+      .closing .c-actions { gap: 12px; }
+      .cta-btn { padding: 12px 18px; font-size: 10px; }
+    }
+
+    /* =============================== FOOTER ============================= */
+    .footer {
+      background: var(--charcoal);
+      color: var(--gold);
+      padding: clamp(48px, 7vw, 96px) var(--gutter);
+      margin-top: clamp(72px, 10vw, 140px);
+    }
+    .footer-inner {
+      max-width: var(--max); margin: 0 auto;
+      display: flex; justify-content: space-between; gap: 32px; flex-wrap: wrap;
+      align-items: end;
+    }
+    .footer .f-mark { font-family: var(--display); font-style: italic; font-size: clamp(28px, 3.6vw, 44px); color: var(--bg); letter-spacing: -0.01em; line-height: 1.1; max-width: 520px; }
+    .footer .f-meta { font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); }
+    .footer .f-meta div + div { margin-top: 6px; }
+    .footer .f-meta .team { color: rgba(200,184,154,0.78); }
+    .footer .f-rule { width: 100%; height: 0.5px; background: rgba(200,184,154,0.22); margin: 36px 0; }
+    .footer .f-bottom { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-family: var(--mono); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(200,184,154,0.7); width: 100%; }
+
+  </style>
+</head>
+<body>
+
+  <!-- Custom cursor -->
+  <div class="cursor-ring" aria-hidden="true"><span class="cursor-label"></span></div>
+  <div class="cursor-dot" aria-hidden="true"></div>
+
+  <!-- Scroll progress -->
+  <div class="progress" id="progress" aria-hidden="true"></div>
+
+  <!-- Nav -->
+  <nav class="nav" id="nav" aria-label="Primary">
+    <a href="#top" class="nav-monogram" data-cursor="hover" aria-label="Top">QM · STUDY</a>
+
+    <div class="nav-dots" role="tablist" aria-label="Chapter navigation">
+      <a href="#ch01" class="nav-dot" data-chapter="ch01" data-cursor="hover" aria-label="Chapter 1 — Premise">
+        <span class="nd-num" aria-hidden="true">01</span><span class="nd-name">Premise</span>
+      </a>
+      <a href="#ch02" class="nav-dot" data-chapter="ch02" data-cursor="hover" aria-label="Chapter 2 — The Data">
+        <span class="nd-num" aria-hidden="true">02</span><span class="nd-name">The Data</span>
+      </a>
+      <a href="#ch03" class="nav-dot" data-chapter="ch03" data-cursor="hover" aria-label="Chapter 3 — Patterns">
+        <span class="nd-num" aria-hidden="true">03</span><span class="nd-name">Patterns</span>
+      </a>
+      <a href="#ch04" class="nav-dot" data-chapter="ch04" data-cursor="hover" aria-label="Chapter 4 — Evidence">
+        <span class="nd-num" aria-hidden="true">04</span><span class="nd-name">Evidence</span>
+      </a>
+      <a href="#ch05" class="nav-dot" data-chapter="ch05" data-cursor="hover" aria-label="Chapter 5 — Segments">
+        <span class="nd-num" aria-hidden="true">05</span><span class="nd-name">Segments</span>
+      </a>
+      <a href="#ch06" class="nav-dot" data-chapter="ch06" data-cursor="hover" aria-label="Chapter 6 — Strategy">
+        <span class="nd-num" aria-hidden="true">06</span><span class="nd-name">Strategy</span>
+      </a>
+    </div>
+
+    <a href="#ch01" class="nav-chip" id="navChip" data-cursor="hover" aria-label="Jump to current chapter">
+      <span class="chip-dot" aria-hidden="true"></span><span id="navChipLabel">Intro</span>
+    </a>
+
+    <button class="nav-decks" id="openOverview" data-cursor="hover" aria-label="View the full slide deck">
+      View Full Deck <span class="arrow" aria-hidden="true">↗</span>
+    </button>
+  </nav>
+
+  <!-- ============================== HERO ============================== -->
+  <header class="hero" id="top">
+    <div class="hero-bg" aria-hidden="true"></div>
+    <div class="hero-veil" aria-hidden="true"></div>
+
+    <div class="hero-inner">
+      <div class="hero-eyebrow mono reveal">Quantitative Market Study · Customer Segmentation · 2024</div>
+      <h1 class="hero-line reveal" data-delay="1">Every purchase is a sentence. We read seven thousand of them.</h1>
+      <p class="hero-subline reveal" data-delay="2">
+        A statistics project that turns <strong>7,665 cleaned Amazon purchases</strong> into five customer segments &mdash; through exploratory analysis, hypothesis testing, and <strong>K-Means clustering</strong> &mdash; then writes a marketing strategy for each.
+      </p>
+      <div class="hero-meta mono reveal" data-delay="3">
+        <div>Amazon purchase data · India</div>
+        <div>1 Deck · 34 Slides · 5 Segments</div>
+      </div>
+    </div>
+
+    <div class="hero-scroll" aria-hidden="true">
+      <span class="line"></span> Scroll
+    </div>
+  </header>
+
+  <!-- ============================ CHAPTER 1 ============================ -->
+  <section class="chapter" id="ch01" data-chapter="ch01">
+    <div class="ch-hero" data-hero>
+      <div class="ch-watermark" aria-hidden="true">01</div>
+      <div class="ch-hero-inner">
+        <h2 class="ch-title">
+          <span class="line"><span>We didn&rsquo;t ask</span></span>
+          <span class="line"><span>the customers.</span></span>
+          <span class="line"><span>We read their <em class="display-italic">receipts.</em></span></span>
+        </h2>
+        <aside class="ch-aside reveal" data-delay="3">
+          <div class="ch-aside-row"><span class="mono">Raw purchases</span><span class="num">7,865</span></div>
+          <div class="ch-aside-row"><span class="mono">Product categories</span><span class="num">5</span></div>
+          <div class="ch-aside-row"><span class="mono">Statistical tests</span><span class="num">4</span></div>
+          <div class="ch-aside-row"><span class="mono">Segments found</span><span class="num">5</span></div>
+        </aside>
+      </div>
+    </div>
+
+    <div class="ch-body">
+      <div class="reveal" style="display:flex; align-items:baseline; justify-content:space-between; gap:24px; flex-wrap:wrap; margin-bottom:48px;">
+        <p class="lede" style="max-width: 760px;">The objective was simple to state and hard to earn: use real purchase data to build <em>targeted marketing</em> &mdash; segments that raise engagement, loyalty, and revenue, defended with statistics rather than intuition.</p>
+        <a href="#" class="ch-deck-link" data-drawer="ch01" data-cursor="hover">View the brief · 3 slides <span class="arrow">→</span></a>
+      </div>
+
+      <!-- THE ARC — the six moves of the study, in order -->
+      <div class="deck-contents reveal" data-delay="2">
+        <div class="m-rail-head">
+          <span class="m-rail-label mono">The arc &mdash; six moves, from raw rows to a per-segment plan</span>
+          <span class="m-rail-meta mono">Method &middot; Contents</span>
+        </div>
+        <ul class="m-rail">
+          <li><span class="m-num mono">01</span><span class="m-name">Collect &amp; clean</span></li>
+          <li><span class="m-num mono">02</span><span class="m-name">Visualize</span></li>
+          <li><span class="m-num mono">03</span><span class="m-name">Hypothesis tests</span></li>
+          <li><span class="m-num mono">04</span><span class="m-name">Price tiers</span></li>
+          <li><span class="m-num mono">05</span><span class="m-name">K-Means</span></li>
+          <li><span class="m-num mono">06</span><span class="m-name">Strategy</span></li>
+        </ul>
+      </div>
+
+      <!-- Objective callout -->
+      <div class="ch3-problem reveal" style="margin-top: clamp(56px, 7vw, 80px);">
+        <div class="meta mono"><span class="dash"></span> Objective · what the study set out to prove</div>
+        <p class="statement">
+          That a population of anonymous shoppers is really <em>a handful of distinct people</em> &mdash; and that <span class="underline">finding them in the numbers lets you speak to each one differently.</span>
+        </p>
+        <p class="caption" style="margin-top: 28px; max-width: 64ch;">Focus: statistical tools to surface purchase patterns, then a segmentation built on top of them. The first two slides set the frame; everything after is evidence.</p>
+      </div>
+
+      <div class="grid12" style="margin-top: clamp(56px, 8vw, 96px); row-gap: clamp(48px, 6vw, 72px);">
+        <figure class="feature f-half-l reveal" data-delay="1" data-feature data-deck="quant-market-study" data-slide="3">
+          <div class="feature-frame">
+            <img loading="lazy" src="public/decks/quant-market-study/003.jpg" alt="Introduction slide — objective and focus of the study" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 03 &middot; Introduction</span>
+            <span class="f-text">The premise, stated plainly: leverage purchase data for marketing built on <em>segmentation</em>, not guesswork.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="feature f-half-r reveal" data-delay="2" data-feature data-deck="quant-market-study" data-slide="2">
+          <div class="feature-frame">
+            <img loading="lazy" src="public/decks/quant-market-study/002.jpg" alt="Contents slide — introduction, data collection and cleaning, visualization, results, segmentation, marketing strategy" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 02 &middot; Contents</span>
+            <span class="f-text">Six sections, one spine &mdash; data in at the top, a strategy out at the bottom.</span>
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- transition -->
+  <div class="ch-transition reveal"><span class="label mono">Chapter 02 — The Data</span></div>
+
+  <!-- ============================ CHAPTER 2 ============================ -->
+  <section class="chapter" id="ch02" data-chapter="ch02">
+    <div class="ch-hero" data-hero>
+      <div class="ch-watermark" aria-hidden="true">02</div>
+      <div class="ch-hero-inner">
+        <h2 class="ch-title">
+          <span class="line"><span>Seven thousand carts,</span></span>
+          <span class="line"><span>cleaned to a <em class="display-italic">signal.</em></span></span>
+        </h2>
+        <aside class="ch-aside reveal" data-delay="3">
+          <div class="ch-aside-row"><span class="mono">Collected</span><span class="num">7,865</span></div>
+          <div class="ch-aside-row"><span class="mono">Removed as outliers</span><span class="num">200</span></div>
+          <div class="ch-aside-row"><span class="mono">Retained</span><span class="num">7,665</span></div>
+          <div class="ch-aside-row"><span class="mono">Retention rate</span><span class="num">97.5%</span></div>
+        </aside>
+      </div>
+    </div>
+
+    <div class="ch-body">
+      <div class="reveal" style="display:flex; align-items:baseline; justify-content:space-between; gap:24px; flex-wrap:wrap; margin-bottom:48px;">
+        <p class="lede" style="max-width: 720px;">Amazon shopping data was gathered in a fixed format across the class &mdash; <em>7,865</em> purchases. Cleaning and outlier removal trimmed the long, distorting tails, leaving <em>7,665</em> points the analysis could trust.</p>
+        <a href="#" class="ch-deck-link" data-drawer="ch02" data-cursor="hover">View collection &amp; cleaning · 4 slides <span class="arrow">→</span></a>
+      </div>
+
+      <!-- The before/after of cleaning, as numbers -->
+      <div class="ch3-problem reveal">
+        <div class="meta mono"><span class="dash"></span> Cleaning · why 200 rows had to go</div>
+        <div class="annotations">
+          <div>
+            <div class="a-w mono"><span class="num">7,865</span></div>
+            <div class="a-label">Raw data points</div>
+            <div class="a-cap">Collected across the class in one standard schema.</div>
+          </div>
+          <div>
+            <div class="a-w mono"><span class="num">200</span></div>
+            <div class="a-label">Outliers removed</div>
+            <div class="a-cap">Extreme prices that stretched every distribution.</div>
+          </div>
+          <div>
+            <div class="a-w mono"><span class="num">7,665</span></div>
+            <div class="a-label">Clean data points</div>
+            <div class="a-cap">The base every chart and test below is built on.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid12" style="margin-top: clamp(56px, 8vw, 96px); row-gap: clamp(48px, 6vw, 72px);">
+        <figure class="feature f-half-l reveal" data-delay="1" data-feature data-deck="quant-market-study" data-slide="4">
+          <div class="feature-frame">
+            <img loading="lazy" src="public/decks/quant-market-study/004.jpg" alt="Customer data collection slide — 7,865 points collected, 7,665 after cleaning" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 04 &middot; Data collection</span>
+            <span class="f-text">The pipeline in three steps: collect in a fixed format, clean, remove outliers.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="feature f-half-r reveal" data-delay="2" data-feature data-deck="quant-market-study" data-slide="6">
+          <div class="feature-frame">
+            <img loading="lazy" src="public/decks/quant-market-study/006.jpg" alt="Category-wise price distribution, before and after outlier removal" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 06 &middot; Price distribution &middot; before / after</span>
+            <span class="f-text">The same five categories, before and after the trim &mdash; the runaway tails on the left collapse into readable spreads on the right.</span>
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- transition -->
+  <div class="ch-transition reveal"><span class="label mono">Chapter 03 — Patterns</span></div>
+
+  <!-- ============================ CHAPTER 3 ============================ -->
+  <section class="chapter" id="ch03" data-chapter="ch03">
+    <div class="ch-hero" data-hero>
+      <div class="ch-watermark" aria-hidden="true">03</div>
+      <div class="ch-hero-inner">
+        <h2 class="ch-title">
+          <span class="line"><span>What the purchases</span></span>
+          <span class="line"><span>were quietly <em class="display-italic">saying.</em></span></span>
+        </h2>
+        <aside class="ch-aside reveal" data-delay="3">
+          <div class="ch-aside-row"><span class="mono">Top category by volume</span><span class="num">Daily Essentials</span></div>
+          <div class="ch-aside-row"><span class="mono">Highest avg ticket</span><span class="num">Electronics</span></div>
+          <div class="ch-aside-row"><span class="mono">Peak month</span><span class="num">July</span></div>
+          <div class="ch-aside-row"><span class="mono">Core age band</span><span class="num">18–34</span></div>
+        </aside>
+      </div>
+    </div>
+
+    <div class="ch-body">
+      <div class="reveal" style="display:flex; align-items:baseline; justify-content:space-between; gap:24px; flex-wrap:wrap; margin-bottom:48px;">
+        <p class="lede" style="max-width: 720px;">Before any test, the data was made to <em>speak in pictures</em> &mdash; counts, prices, correlations, seasonality, age. The charts already tell most of the story; the statistics that follow only confirm it.</p>
+        <a href="#" class="ch-deck-link" data-drawer="ch03" data-cursor="hover">View the EDA · 9 slides <span class="arrow">→</span></a>
+      </div>
+
+      <div class="deck-contents reveal" data-delay="2">
+        <div class="m-rail-head">
+          <span class="m-rail-label mono">How the data was made visible &mdash; nine views</span>
+          <span class="m-rail-meta mono">Visualization &middot; Contents</span>
+        </div>
+        <ul class="m-rail">
+          <li><span class="m-num mono">01</span><span class="m-name">Purchases by category</span></li>
+          <li><span class="m-num mono">02</span><span class="m-name">Correlation matrix</span></li>
+          <li><span class="m-num mono">03</span><span class="m-name">Price histograms</span></li>
+          <li><span class="m-num mono">04</span><span class="m-name">Orders over time</span></li>
+          <li><span class="m-num mono">05</span><span class="m-name">Spend by category</span></li>
+          <li><span class="m-num mono">06</span><span class="m-name">Age distribution</span></li>
+        </ul>
+      </div>
+
+      <div class="grid12" style="margin-top: clamp(56px, 8vw, 96px); row-gap: clamp(56px, 7vw, 80px);">
+        <figure class="feature f-half-l reveal" data-delay="1" data-feature data-deck="quant-market-study" data-slide="5">
+          <div class="feature-frame">
+            <img loading="lazy" src="public/decks/quant-market-study/005.jpg" alt="Category-wise number of purchases bar chart" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 05 &middot; Purchases by category</span>
+            <span class="f-text"><em>Daily Essentials</em> (~2,850) and <em>Fashion</em> (~2,250) lead by volume; Electronics is the smallest count.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="feature f-half-r reveal" data-delay="2" data-feature data-deck="quant-market-study" data-slide="11">
+          <div class="feature-frame">
+            <img loading="lazy" src="public/decks/quant-market-study/011.jpg" alt="Average and total spend versus category" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 11 &middot; Average vs total spend</span>
+            <span class="f-text">The twist: <em>Electronics</em> has the smallest volume but the <em>highest average ticket</em> &mdash; low frequency, high value.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="feature f-full reveal" data-delay="1" data-feature data-deck="quant-market-study" data-slide="7" style="margin-top: clamp(24px, 3vw, 40px);">
+          <div class="feature-frame" style="aspect-ratio: 16 / 9;">
+            <img loading="lazy" src="public/decks/quant-market-study/007.jpg" alt="Heat map of the correlation matrix" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 07 &middot; Correlation matrix</span>
+            <span class="f-text"><em>Total Owed</em> is driven almost entirely by <em>Unit Price</em> (0.98) &mdash; not quantity (&minus;0.001) and not age (~0). The single most important finding: <em>price, not basket size, drives revenue.</em></span>
+          </figcaption>
+        </figure>
+
+        <figure class="feature f-half-l reveal" data-delay="1" data-feature data-deck="quant-market-study" data-slide="8" style="margin-top: clamp(56px, 7vw, 80px);">
+          <div class="feature-frame">
+            <img loading="lazy" src="public/decks/quant-market-study/008.jpg" alt="Histogram of category-wise price" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 08 &middot; Price histograms</span>
+            <span class="f-text">Every category is heavily right-skewed &mdash; most orders sit under ~2,000, with a thin premium tail.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="feature f-half-r reveal" data-delay="2" data-feature data-deck="quant-market-study" data-slide="9" style="margin-top: clamp(56px, 7vw, 80px);">
+          <div class="feature-frame">
+            <img loading="lazy" src="public/decks/quant-market-study/009.jpg" alt="Time series of orders, category wise" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 09 &middot; Orders over time</span>
+            <span class="f-text">Fashion leads month after month; the right panel shows the sharp 2023&ndash;24 growth ramp in raw order counts.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="feature f-full reveal" data-delay="1" data-feature data-deck="quant-market-study" data-slide="10" style="margin-top: clamp(56px, 7vw, 80px);">
+          <div class="feature-frame" style="aspect-ratio: 16 / 9;">
+            <img loading="lazy" src="public/decks/quant-market-study/010.jpg" alt="Total orders by month bar chart" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 10 &middot; Orders by month</span>
+            <span class="f-text">A clear seasonal shape &mdash; a <em>July&ndash;August peak</em> (~840 in July) and a February trough. The calendar matters as much as the customer.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="feature f-half-l reveal" data-delay="1" data-feature data-deck="quant-market-study" data-slide="12" style="margin-top: clamp(56px, 7vw, 80px);">
+          <div class="feature-frame">
+            <img loading="lazy" src="public/decks/quant-market-study/012.jpg" alt="Heat map of quantity and total spend by age" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 12 &middot; Spend &amp; quantity by age</span>
+            <span class="f-text">The <em>25&ndash;34</em> band carries the highest average total owed (628); quantity barely moves across ages.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="feature f-half-r reveal" data-delay="2" data-feature data-deck="quant-market-study" data-slide="13" style="margin-top: clamp(56px, 7vw, 80px);">
+          <div class="feature-frame">
+            <img loading="lazy" src="public/decks/quant-market-study/013.jpg" alt="Distribution of orders across age group" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 13 &middot; Orders by age group</span>
+            <span class="f-text">Two bands dominate: <em>18&ndash;24</em> and <em>25&ndash;34</em>, ~3,600 each. Everyone older is a rounding error &mdash; a sampling fingerprint worth remembering.</span>
+          </figcaption>
+        </figure>
+      </div>
+
+      <div class="ch2-grid" style="margin-top: clamp(72px, 9vw, 120px);">
+        <article class="insight span-7 reveal" data-delay="1">
+          <div class="num">Pattern 01</div>
+          <div class="stmt"><em class="display-italic">Price &mdash; not quantity, not age &mdash; is what moves revenue. Total Owed correlates 0.98 with Unit Price.</em></div>
+          <div class="tag">Correlation · Revenue driver</div>
+        </article>
+
+        <article class="insight span-5 reveal" data-delay="2">
+          <div class="num">Pattern 02</div>
+          <div class="stmt"><strong style="font-weight:500;">Electronics is low-volume, high-ticket</strong> &mdash; the smallest count but the largest average order.</div>
+          <div class="tag">Category economics</div>
+        </article>
+
+        <article class="insight span-5 dark reveal" data-delay="1">
+          <div class="num">Pattern 03</div>
+          <div class="stmt"><em class="display-italic">Demand is seasonal &mdash; a July&ndash;August peak and a February floor that any campaign calendar has to respect.</em></div>
+          <div class="tag">Seasonality</div>
+        </article>
+
+        <article class="insight span-7 reveal" data-delay="2">
+          <div class="num">Pattern 04</div>
+          <div class="stmt">The customer base is <em>young</em> &mdash; 18&ndash;34 accounts for almost every order, a direct consequence of how the data was collected.</div>
+          <div class="tag">Demographics · Caveat</div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- transition -->
+  <div class="ch-transition reveal"><span class="label mono">Chapter 04 — Evidence</span></div>
+
+  <!-- ============================ CHAPTER 4 ============================ -->
+  <section class="chapter" id="ch04" data-chapter="ch04">
+    <div class="ch-hero" data-hero>
+      <div class="ch-watermark" aria-hidden="true">04</div>
+      <div class="ch-hero-inner">
+        <h2 class="ch-title">
+          <span class="line"><span>Where the eye ends,</span></span>
+          <span class="line"><span>the <em class="display-italic">test</em> begins.</span></span>
+        </h2>
+        <aside class="ch-aside reveal" data-delay="3">
+          <div class="ch-aside-row"><span class="mono">Tests applied</span><span class="num">4</span></div>
+          <div class="ch-aside-row"><span class="mono">Gender spend p-value</span><span class="num">7.6e&minus;11</span></div>
+          <div class="ch-aside-row"><span class="mono">Age &harr; spend (r)</span><span class="num">0.004</span></div>
+          <div class="ch-aside-row"><span class="mono">t-test power</span><span class="num">1.0</span></div>
+        </aside>
+      </div>
+    </div>
+
+    <div class="ch-body">
+      <div class="grid12">
+        <div class="badges" data-badges>
+          <span class="badge">Welch&rsquo;s t-test</span>
+          <span class="badge">Chi-Square</span>
+          <span class="badge">Pearson r</span>
+          <span class="badge">Statistical Power</span>
+        </div>
+
+        <div class="reveal" style="grid-column: 1 / span 7; margin-bottom: 32px;">
+          <p class="lede">Four tests, each asking a sharper question than a chart can: is this difference <em>real</em>, or just the eye seeing what it wants?</p>
+        </div>
+        <div class="reveal" style="grid-column: 9 / -1; margin-bottom: 32px; align-self:end;">
+          <a href="#" class="ch-deck-link" data-drawer="ch04" data-cursor="hover">View tests &amp; results · 7 slides <span class="arrow">→</span></a>
+        </div>
+
+        <div class="methods reveal">
+          <div class="method">
+            <div class="m-name">Welch&rsquo;s t-test <small>Total Owed &middot; by gender</small></div>
+            <div class="m-purpose">Compare mean spend of two groups when variances differ.</div>
+            <div class="m-output">t&nbsp;=&nbsp;<em>6.52</em>, p&nbsp;=&nbsp;<em>7.6e&minus;11</em>. Men and women spend <em>significantly</em> differently.</div>
+          </div>
+
+          <div class="method">
+            <div class="m-name">Chi-Square <small>Quantity &times; Gender</small></div>
+            <div class="m-purpose">Test association between two categorical variables.</div>
+            <div class="m-output">&chi;&sup2;&nbsp;=&nbsp;<em>34.2</em>, p&nbsp;=&nbsp;<em>3.7e&minus;5</em>. A real link between gender and basket size.</div>
+          </div>
+
+          <div class="method">
+            <div class="m-name">Pearson r <small>Age &harr; Total Owed</small></div>
+            <div class="m-purpose">Measure linear relationship between two continuous variables.</div>
+            <div class="m-output">r&nbsp;&asymp;&nbsp;<em>0.004</em>, p&nbsp;&asymp;&nbsp;0.69. <em>Age does not predict spend</em> &mdash; a key reason to cluster carefully.</div>
+          </div>
+
+          <div class="method">
+            <div class="m-name">Statistical Power <small>1 &minus; &beta;</small></div>
+            <div class="m-purpose">Probability of catching a real effect when it exists.</div>
+            <div class="m-output">Power&nbsp;=&nbsp;<em>1.0</em>. With ~7,665 rows the tests are decisive, not marginal.</div>
+          </div>
+        </div>
+
+        <figure class="feature f-full reveal" data-delay="1" data-feature data-deck="quant-market-study" data-slide="15" style="margin-top: clamp(56px, 8vw, 96px); margin-bottom: clamp(48px, 6vw, 72px);">
+          <div class="feature-frame" style="aspect-ratio: 16 / 9;">
+            <img loading="lazy" src="public/decks/quant-market-study/015.jpg" alt="Result of test — Welch's t-test and Chi-square code with outputs" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 15 &middot; Test results</span>
+            <span class="f-text">The actual <code>scipy.stats</code> calls and their outputs &mdash; the spend-by-gender difference lands at p&nbsp;=&nbsp;7.6e&minus;11.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="feature f-half-l reveal" data-delay="1" data-feature data-deck="quant-market-study" data-slide="18" style="margin-top: clamp(24px, 3vw, 40px);">
+          <div class="feature-frame">
+            <img loading="lazy" src="public/decks/quant-market-study/018.jpg" alt="Order and spending across gender" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 18 &middot; Orders &amp; spend by gender</span>
+            <span class="f-text">Men place ~2.4&times; the orders &mdash; the gap the t-test confirmed as significant, not noise.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="feature f-half-r reveal" data-delay="2" data-feature data-deck="quant-market-study" data-slide="20" style="margin-top: clamp(24px, 3vw, 40px);">
+          <div class="feature-frame">
+            <img loading="lazy" src="public/decks/quant-market-study/020.jpg" alt="Average spend across state" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 20 &middot; Average spend by state</span>
+            <span class="f-text">Volume and value diverge by geography: <em>Sikkim</em> and <em>Chhattisgarh</em> spend most per order despite low counts.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="feature f-full reveal" data-delay="1" data-feature data-deck="quant-market-study" data-slide="17" style="margin-top: clamp(56px, 7vw, 80px);">
+          <div class="feature-frame" style="aspect-ratio: 16 / 9;">
+            <img loading="lazy" src="public/decks/quant-market-study/017.jpg" alt="Result of test — Pearson correlation, power, and chi-square for clusters" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 17 &middot; Correlation, power &amp; cluster tests</span>
+            <span class="f-text">Pearson confirms age is unrelated to spend; power sits at 1.0. The later cluster &times; gender test returns p&nbsp;=&nbsp;1.0 &mdash; the segments are gender-independent.</span>
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- transition -->
+  <div class="ch-transition reveal"><span class="label mono">Chapter 05 — Segments</span></div>
+
+  <!-- ============================ CHAPTER 5 ============================ -->
+  <section class="chapter" id="ch05" data-chapter="ch05">
+    <div class="ch-hero" data-hero>
+      <div class="ch-watermark" aria-hidden="true">05</div>
+      <div class="ch-hero-inner">
+        <h2 class="ch-title">
+          <span class="line"><span>Five customers</span></span>
+          <span class="line"><span>hiding in one <em class="display-italic">dataset.</em></span></span>
+        </h2>
+        <aside class="ch-aside reveal" data-delay="3">
+          <div class="ch-aside-row"><span class="mono">Price tiers</span><span class="num">3</span></div>
+          <div class="ch-aside-row"><span class="mono">Cluster features</span><span class="num">3</span></div>
+          <div class="ch-aside-row"><span class="mono">Optimal k (elbow)</span><span class="num">5</span></div>
+          <div class="ch-aside-row"><span class="mono">Segments</span><span class="num">5</span></div>
+        </aside>
+      </div>
+    </div>
+
+    <div class="ch-body">
+      <div class="reveal" style="display:flex; align-items:baseline; justify-content:space-between; gap:24px; flex-wrap:wrap; margin-bottom:48px;">
+        <p class="lede" style="max-width: 740px;">First, every category was split into <em>cheap, normal, premium</em> by price percentile. Then K-Means &mdash; on spend, quantity, and age &mdash; was asked how many kinds of customer the data really contains. The elbow answered: <em>five.</em></p>
+        <a href="#" class="ch-deck-link" data-drawer="ch05" data-cursor="hover">View segmentation · 12 slides <span class="arrow">→</span></a>
+      </div>
+
+      <div class="deck-contents reveal" data-delay="2">
+        <div class="m-rail-head">
+          <span class="m-rail-label mono">From price tiers to five clusters</span>
+          <span class="m-rail-meta mono">Segmentation &middot; Contents</span>
+        </div>
+        <ul class="m-rail">
+          <li><span class="m-num mono">01</span><span class="m-name">Price tiering</span></li>
+          <li><span class="m-num mono">02</span><span class="m-name">Category splits</span></li>
+          <li><span class="m-num mono">03</span><span class="m-name">State distribution</span></li>
+          <li><span class="m-num mono">04</span><span class="m-name">Elbow method</span></li>
+          <li><span class="m-num mono">05</span><span class="m-name">K-Means (3D)</span></li>
+          <li><span class="m-num mono">06</span><span class="m-name">Five segments</span></li>
+        </ul>
+      </div>
+
+      <div class="grid12" style="margin-top: clamp(56px, 8vw, 96px); row-gap: clamp(56px, 7vw, 80px);">
+        <figure class="feature f-half-l reveal" data-delay="1" data-feature data-deck="quant-market-study" data-slide="21">
+          <div class="feature-frame">
+            <img loading="lazy" src="public/decks/quant-market-study/021.jpg" alt="Spending capacity across states — price tier definitions" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 21 &middot; Price tiers</span>
+            <span class="f-text">Each category split by unit price: <em>cheap</em> (&lt;25th pct), <em>normal</em> (25&ndash;75th), <em>premium</em> (&gt;75th).</span>
+          </figcaption>
+        </figure>
+
+        <figure class="feature f-half-r reveal" data-delay="2" data-feature data-deck="quant-market-study" data-slide="27">
+          <div class="feature-frame">
+            <img loading="lazy" src="public/decks/quant-market-study/027.jpg" alt="Overall distribution of price categories across states" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 27 &middot; Tier distribution by state</span>
+            <span class="f-text"><em>Normal</em>-priced products dominate everywhere; Maharashtra, Karnataka and UP lead the volume.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="feature f-half-l reveal" data-delay="1" data-feature data-deck="quant-market-study" data-slide="30" style="margin-top: clamp(56px, 7vw, 80px);">
+          <div class="feature-frame">
+            <img loading="lazy" src="public/decks/quant-market-study/030.jpg" alt="Optimal k estimation — elbow method" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 30 &middot; Elbow method</span>
+            <span class="f-text">Inertia bends around <em>k&nbsp;=&nbsp;4&ndash;5</em> &mdash; the point where extra clusters stop paying for themselves. Five was chosen.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="feature f-half-r reveal" data-delay="2" data-feature data-deck="quant-market-study" data-slide="31" style="margin-top: clamp(56px, 7vw, 80px);">
+          <div class="feature-frame">
+            <img loading="lazy" src="public/decks/quant-market-study/031.jpg" alt="3D plot of K-Means clustering" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 31 &middot; K-Means in 3D</span>
+            <span class="f-text">Customers plotted on <em>Total Owed &times; Quantity &times; Age</em>, coloured by cluster &mdash; the same shape the hero scatter echoes.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="feature f-full reveal" data-delay="1" data-feature data-deck="quant-market-study" data-slide="32" style="margin-top: clamp(56px, 7vw, 80px);">
+          <div class="feature-frame" style="aspect-ratio: 16 / 9;">
+            <img loading="lazy" src="public/decks/quant-market-study/032.jpg" alt="Segmentation based on K-Means clustering — five clusters described" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 32 &middot; The five segments</span>
+            <span class="f-text">Each cluster, named and described &mdash; from low-spend minimalists to high-spend impulse buyers and frequent bulk shoppers.</span>
+          </figcaption>
+        </figure>
+      </div>
+
+      <!-- The five segments as cards -->
+      <div class="reveal" style="grid-column:1/-1; margin-top: clamp(56px, 7vw, 80px); margin-bottom: 32px;">
+        <div class="mono" style="color:var(--text-mute);"><span class="dash" style="display:inline-block; width:32px; height:1px; background:var(--text-mute); margin-right:14px;"></span>The five segments</div>
+      </div>
+
+      <div class="ch6-concepts">
+        <article class="concept reveal" data-delay="1">
+          <div class="c-num mono">Cluster 0 · Low spending</div>
+          <h4 class="c-name">Purchase low quantity and spend minimal.</h4>
+          <p class="c-desc">The largest, most price-sensitive group &mdash; the dense corner of the 3D plot.</p>
+          <div class="c-points"><div class="pt"><div class="pl">Spend</div><div class="pv">Low</div></div><div class="pt"><div class="pl">Quantity</div><div class="pv">Low</div></div></div>
+        </article>
+
+        <article class="concept reveal" data-delay="2">
+          <div class="c-num mono">Cluster 1 · Older, medium</div>
+          <h4 class="c-name">Slightly more engaged, but a conservative spender.</h4>
+          <p class="c-desc">Steady, mid-value buyers who respond to value and convenience.</p>
+          <div class="c-points"><div class="pt"><div class="pl">Spend</div><div class="pv">Medium</div></div><div class="pt"><div class="pl">Style</div><div class="pv">Conservative</div></div></div>
+        </article>
+
+        <article class="concept reveal" data-delay="1">
+          <div class="c-num mono">Cluster 2 · Young, high</div>
+          <h4 class="c-name">High-spending impulse buying.</h4>
+          <p class="c-desc">The most valuable to win on loyalty &mdash; trend-driven, fast to convert.</p>
+          <div class="c-points"><div class="pt"><div class="pl">Spend</div><div class="pv">High</div></div><div class="pt"><div class="pl">Style</div><div class="pv">Impulse</div></div></div>
+        </article>
+
+        <article class="concept reveal" data-delay="2">
+          <div class="c-num mono">Cluster 3 · Bulk buyers</div>
+          <h4 class="c-name">Frequent low-value buyers, purchasing larger quantity.</h4>
+          <p class="c-desc">High frequency at modest ticket &mdash; the natural target for memberships.</p>
+          <div class="c-points"><div class="pt"><div class="pl">Frequency</div><div class="pv">High</div></div><div class="pt"><div class="pl">Quantity</div><div class="pv">Large</div></div></div>
+        </article>
+
+        <article class="concept reveal" data-delay="1">
+          <div class="c-num mono">Cluster 4 · Low spend / qty</div>
+          <h4 class="c-name">Low spending, low quantity buyers.</h4>
+          <p class="c-desc">Thin engagement &mdash; worth nurturing toward a first meaningful purchase.</p>
+          <div class="c-points"><div class="pt"><div class="pl">Spend</div><div class="pv">Low</div></div><div class="pt"><div class="pl">Quantity</div><div class="pv">Low</div></div></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- transition -->
+  <div class="ch-transition reveal"><span class="label mono">Chapter 06 — Strategy</span></div>
+
+  <!-- ============================ CHAPTER 6 ============================ -->
+  <section class="chapter" id="ch06" data-chapter="ch06">
+    <div class="ch-hero" data-hero>
+      <div class="ch-watermark" aria-hidden="true">06</div>
+      <div class="ch-hero-inner">
+        <h2 class="ch-title">
+          <span class="line"><span>A different message</span></span>
+          <span class="line"><span>for each of <em class="display-italic">the five.</em></span></span>
+        </h2>
+        <aside class="ch-aside reveal" data-delay="3">
+          <div class="ch-aside-row"><span class="mono">Segments</span><span class="num">5</span></div>
+          <div class="ch-aside-row"><span class="mono">Tailored playbooks</span><span class="num">5</span></div>
+          <div class="ch-aside-row"><span class="mono">Anchored in</span><span class="num">Cluster traits</span></div>
+        </aside>
+      </div>
+    </div>
+
+    <div class="ch-body">
+      <div class="grid12">
+        <div class="ch6-reveal reveal">
+          <div class="ch6-reveal-inner">
+            <div class="ch6-eyebrow mono">Final Output · Strategy · One plan per segment</div>
+            <h3 class="ch6-headline">Segmentation only matters if it <em class="display-italic">changes what you do.</em> Each cluster gets its own offer, channel, and tone.</h3>
+            <aside class="ch6-meta mono">
+              <div class="row"><span>Price-led</span><span>Cluster 0</span></div>
+              <div class="row"><span>Bundle-led</span><span>Cluster 1</span></div>
+              <div class="row"><span>Loyalty-led</span><span>Cluster 2</span></div>
+              <div class="row"><span>Membership-led</span><span>Cluster 3</span></div>
+            </aside>
+          </div>
+        </div>
+
+        <figure class="feature f-full reveal" data-delay="1" data-feature data-deck="quant-market-study" data-slide="33" style="margin-top: clamp(56px, 7vw, 80px);">
+          <div class="feature-frame" style="aspect-ratio: 16 / 9;">
+            <img loading="lazy" src="public/decks/quant-market-study/033.jpg" alt="Marketing strategy slide — a tactic per cluster" />
+          </div>
+          <figcaption class="feature-cap">
+            <span class="f-tag">Slide 33 &middot; Marketing strategy</span>
+            <span class="f-text">The deliverable: a concrete tactic for each of the five segments, traced straight back to the cluster&rsquo;s behaviour.</span>
+          </figcaption>
+        </figure>
+
+        <div class="reveal" style="grid-column:1/-1; margin-top: clamp(56px, 7vw, 80px); margin-bottom: 32px;">
+          <div class="mono" style="color:var(--text-mute);"><span class="dash" style="display:inline-block; width:32px; height:1px; background:var(--text-mute); margin-right:14px;"></span>The playbook, segment by segment</div>
+        </div>
+
+        <div class="ch6-concepts" style="grid-template-columns: 1fr;">
+          <article class="concept concept-winner reveal" data-delay="1">
+            <div class="c-num mono"><span class="winner-pill">Highest value</span> Cluster 2 · Young, high spend</div>
+            <h4 class="c-name">Reinforce brand loyalty with exclusive discounts; target with trendy, fashion-forward product.</h4>
+            <p class="c-desc">These impulse buyers already spend the most &mdash; the goal is retention, not acquisition. Make them feel like insiders before a competitor does.</p>
+            <div class="c-points cw-points">
+              <div class="pt"><div class="pl">Offer</div><div class="pv">Exclusive discounts</div></div>
+              <div class="pt"><div class="pl">Tone</div><div class="pv">Trendy</div></div>
+              <div class="pt"><div class="pl">Goal</div><div class="pv">Loyalty</div></div>
+              <div class="pt"><div class="pl">Channel</div><div class="pv">Social-first</div></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="ch6-concepts" style="margin-top: clamp(40px, 5vw, 64px);">
+          <article class="concept reveal" data-delay="1">
+            <div class="c-num mono">Cluster 0 · Low spending</div>
+            <h4 class="c-name">Highlight low cost; offer discounts and cashback.</h4>
+            <p class="c-desc">Price is the lever. Lead with the cheapest path to a purchase and reward repeat visits.</p>
+            <div class="c-points"><div class="pt"><div class="pl">Offer</div><div class="pv">Discounts · cashback</div></div><div class="pt"><div class="pl">Hook</div><div class="pv">Lowest price</div></div></div>
+          </article>
+
+          <article class="concept reveal" data-delay="2">
+            <div class="c-num mono">Cluster 1 · Older, medium</div>
+            <h4 class="c-name">Offer bundled deals like buy-1-get-1; appear at the top of search.</h4>
+            <p class="c-desc">Conservative spenders move on perceived value and visibility &mdash; make the better deal the obvious one.</p>
+            <div class="c-points"><div class="pt"><div class="pl">Offer</div><div class="pv">Bundles · BOGO</div></div><div class="pt"><div class="pl">Channel</div><div class="pv">Search visibility</div></div></div>
+          </article>
+
+          <article class="concept reveal" data-delay="1">
+            <div class="c-num mono">Cluster 3 · Bulk buyers</div>
+            <h4 class="c-name">VIP membership with premium support; retain via post-purchase follow-up.</h4>
+            <p class="c-desc">Frequent buyers reward a relationship &mdash; lock in the habit with service that makes leaving costly.</p>
+            <div class="c-points"><div class="pt"><div class="pl">Offer</div><div class="pv">VIP membership</div></div><div class="pt"><div class="pl">Goal</div><div class="pv">Retention</div></div></div>
+          </article>
+
+          <article class="concept reveal" data-delay="2">
+            <div class="c-num mono">Cluster 4 · Low spend / qty</div>
+            <h4 class="c-name">Dedicated account manager; invite to beta tests and product feedback.</h4>
+            <p class="c-desc">Thin engagement is grown through attention &mdash; turn a quiet buyer into an involved one.</p>
+            <div class="c-points"><div class="pt"><div class="pl">Offer</div><div class="pv">High-touch service</div></div><div class="pt"><div class="pl">Goal</div><div class="pv">Activation</div></div></div>
+          </article>
+        </div>
+
+        <div class="reveal" style="grid-column:1/-1; margin-top: clamp(56px, 7vw, 80px); display:flex; justify-content:space-between; align-items:baseline; gap:24px; flex-wrap:wrap;">
+          <p class="caption" style="max-width: 560px;">Every tactic above is traceable to a number &mdash; a correlation, a test, or a cluster centroid &mdash; not to a hunch. That traceability is the whole point of doing the statistics first.</p>
+          <a href="#" class="ch-deck-link" data-drawer="ch06" data-cursor="hover">View the strategy slide · 2 slides <span class="arrow">→</span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ CLOSING / CTA ====================== -->
+  <section class="closing reveal" id="next" aria-labelledby="next-head">
+    <div class="closing-inner">
+      <div class="c-label mono"><span style="display:inline-block;width:32px;height:1px;background:var(--text-mute);vertical-align:middle;margin-right:12px;"></span>Where we&rsquo;d take it next</div>
+
+      <h2 class="c-head" id="next-head">A class project is a <em>proof of method</em>, not a finished model. Here&rsquo;s how we&rsquo;d harden the segmentation <em>next</em>.</h2>
+
+      <div class="c-nexts">
+        <article class="c-next">
+          <div class="n-num">01 · Scale the features</div>
+          <div class="n-title">Standardize inputs and rethink what we cluster on.</div>
+          <p class="n-text">Total Owed dwarfs Quantity and Age in raw units, so K-Means is dominated by spend. Z-scoring the features &mdash; and replacing Age (which the data showed is unrelated to spend) with a behavioural signal &mdash; would sharpen the segments.</p>
+        </article>
+        <article class="c-next">
+          <div class="n-num">02 · Validate the clusters</div>
+          <div class="n-title">Confirm k with a silhouette score, not just the elbow.</div>
+          <p class="n-text">The elbow suggests five, but it&rsquo;s a judgement call. A silhouette analysis plus reported cluster sizes and centroids would make the five-segment claim defensible, not just plausible.</p>
+        </article>
+        <article class="c-next">
+          <div class="n-num">03 · Name the bias</div>
+          <div class="n-title">Move toward a true RFM model on representative data.</div>
+          <p class="n-text">The sample skews young and male because it was collected across a class. A Recency-Frequency-Monetary segmentation on a broader, representative dataset would let these strategies generalize beyond the cohort.</p>
+        </article>
+      </div>
+
+      <div class="c-actions">
+        <a href="#top" class="cta-btn primary" data-cursor="hover">Back to the top <span aria-hidden="true">↑</span></a>
+        <button class="cta-btn" id="openOverviewClosing" data-cursor="hover">Browse all 34 slides <span aria-hidden="true">↗</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== FOOTER ============================ -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="f-mark">Quantitative Market Study<br/><span class="display-italic" style="opacity:0.75;">Customer Segmentation from Purchase Data</span></div>
+      <div class="f-meta">
+        <div>Statistics · EDA · Hypothesis Testing · K-Means</div>
+        <div>2024 · 1 deck · 34 slides · 5 segments</div>
+        <div class="team" style="margin-top:18px;">Team · Awart Katiyar · Paarth S Barkur · Shuvadeep Ghosh · Yash Dudhpachare</div>
+      </div>
+      <div class="f-rule"></div>
+      <div class="f-bottom">
+        <div>© 2024 — All original analysis &amp; charts</div>
+        <div><a href="#top" data-cursor="hover">Back to top ↑</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============================ DRAWER =============================== -->
+  <div class="drawer-scrim" id="drawerScrim" aria-hidden="true"></div>
+  <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle" aria-hidden="true">
+    <div class="drawer-head">
+      <div class="d-meta">
+        <span class="d-ch mono" id="drawerCh">Chapter 01 — Premise</span>
+        <span class="d-title display-italic" id="drawerTitle">Slides for this chapter</span>
+        <span class="d-count mono" id="drawerCount">— slides</span>
+      </div>
+      <button class="drawer-close" id="drawerClose" data-cursor="hover" aria-label="Close drawer">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1 1 L13 13 M13 1 L1 13"/></svg>
+      </button>
+    </div>
+    <div class="drawer-rail-wrap">
+      <div class="drawer-track" id="drawerTrack" tabindex="0" aria-label="Slide thumbnails — horizontally scrollable"></div>
+    </div>
+  </aside>
+
+  <!-- ============================ LIGHTBOX ============================= -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="lb-head">
+      <div class="lb-info">
+        <span class="lb-ch" id="lbCh">Chapter</span>
+        <span class="lb-pos" id="lbPos">Slide 1 of 1</span>
+      </div>
+      <button class="lb-close" id="lbClose" data-cursor="hover" aria-label="Close lightbox">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1 1 L13 13 M13 1 L1 13"/></svg>
+      </button>
+    </div>
+    <div class="lb-stage">
+      <button class="lb-arrow prev" id="lbPrev" data-cursor="hover" aria-label="Previous slide">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M9 1 L3 7 L9 13"/></svg>
+      </button>
+      <div class="lb-img-wrap">
+        <img id="lbImg" alt="" />
+      </div>
+      <button class="lb-arrow next" id="lbNext" data-cursor="hover" aria-label="Next slide">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M5 1 L11 7 L5 13"/></svg>
+      </button>
+    </div>
+    <!-- Filmstrip — every slide in this deck as a small clickable thumb, current one highlighted. -->
+    <div class="lb-filmstrip" aria-label="All slides in this deck — click to jump">
+      <div class="lb-filmstrip-track" id="lbFilmstripTrack"></div>
+    </div>
+    <div class="lb-foot">
+      <span id="lbDeck">Source deck</span>
+      <span>← → navigate · click any thumb to jump · Esc to close</span>
+    </div>
+  </div>
+
+  <!-- ============================ OVERVIEW ============================= -->
+  <div class="overview" id="overview" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="overview-head">
+      <div class="title">Full Deck · 1 source deck · 34 slides</div>
+      <button class="drawer-close" id="overviewClose" data-cursor="hover" aria-label="Close overview">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1 1 L13 13 M13 1 L1 13"/></svg>
+      </button>
+    </div>
+    <div class="overview-grid" id="overviewGrid"></div>
+  </div>
+
+  <!-- =============================== JS =============================== -->
+  <script>
+  (function () {
+    'use strict';
+
+    // ------------------------ source deck registry ---------------------- //
+    // Each source deck = one folder under public/decks, with NNN.jpg files.
+    const SOURCES = {
+      'quant-market-study': { label: 'Quantitative Market Study', count: 34 },
+    };
+
+    function deckPath(slug, n) {
+      return `public/decks/${slug}/${String(n).padStart(3, '0')}.jpg`;
+    }
+
+    // buildSlides accepts strings (full deck) or { src, from, to } objects (slide range).
+    function buildSlides(...sources) {
+      const out = [];
+      sources.forEach((entry, idx) => {
+        if (idx > 0) out.push({ sectionBreak: true });
+        const src  = typeof entry === 'string' ? entry : entry.src;
+        const meta = SOURCES[src];
+        const from = (typeof entry === 'object' && entry.from) ? entry.from : 1;
+        const to   = (typeof entry === 'object' && entry.to)   ? entry.to   : meta.count;
+        for (let i = from; i <= to; i++) {
+          out.push({
+            src:       deckPath(src, i),
+            n:         i,
+            deck:      src,
+            deckLabel: meta.label,
+          });
+        }
+      });
+      return out;
+    }
+
+    // ----------------------- chapter → deck mapping --------------------- //
+    // The drawer for each chapter shows ONLY the slides that support that chapter's narrative.
+    // Deck 01 is split between Ch1 (ethnography) and Ch2 (opportunity / market context).
+    // Deck 06 (TRIZ) is split between Ch4 (slides 1–28, the method) and Ch6 (slides 29–41,
+    //   the seven-method evaluation that selected Cool Stack). Slide 29 is the literal
+    //   "EVALUATION" divider in the source deck — the natural break.
+    // The figure→drawer resolver above uses the enclosing section to route correctly.
+    // One source deck (the original 34-slide PDF). Each chapter's drawer shows
+    // only the slide range that supports that chapter's narrative.
+    const DECKS = {
+      ch01: {
+        chapter: 'Chapter 01 — Premise',
+        title:   'Objective &amp; the brief',
+        sources: ['quant-market-study'],
+        slides:  buildSlides({ src: 'quant-market-study', from: 1, to: 3 }),
+      },
+      ch02: {
+        chapter: 'Chapter 02 — The Data',
+        title:   'Collection &amp; cleaning',
+        sources: ['quant-market-study'],
+        slides:  buildSlides({ src: 'quant-market-study', from: 4, to: 6 }),
+      },
+      ch03: {
+        chapter: 'Chapter 03 — Patterns',
+        title:   'Exploratory data visualization',
+        sources: ['quant-market-study'],
+        slides:  buildSlides({ src: 'quant-market-study', from: 5, to: 13 }),
+      },
+      ch04: {
+        chapter: 'Chapter 04 — Evidence',
+        title:   'Statistical tests &amp; results',
+        sources: ['quant-market-study'],
+        slides:  buildSlides({ src: 'quant-market-study', from: 14, to: 20 }),
+      },
+      ch05: {
+        chapter: 'Chapter 05 — Segments',
+        title:   'Price tiers &amp; K-Means clustering',
+        sources: ['quant-market-study'],
+        slides:  buildSlides({ src: 'quant-market-study', from: 21, to: 32 }),
+      },
+      ch06: {
+        chapter: 'Chapter 06 — Strategy',
+        title:   'A marketing plan per segment',
+        sources: ['quant-market-study'],
+        slides:  buildSlides({ src: 'quant-market-study', from: 33, to: 34 }),
+      },
+    };
+
+    // ------------------------- progress bar ---------------------------- //
+    const progress = document.getElementById('progress');
+    function updateProgress() {
+      const h = document.documentElement;
+      const scrolled = h.scrollTop || document.body.scrollTop;
+      const max = (h.scrollHeight - h.clientHeight) || 1;
+      const pct = Math.min(100, (scrolled / max) * 100);
+      progress.style.width = pct + '%';
+    }
+
+    // -------------------------- nav state ------------------------------ //
+    const nav = document.getElementById('nav');
+    let lastY = 0;
+    function updateNav() {
+      const y = window.scrollY;
+      if (y > 8) nav.classList.add('is-scrolled'); else nav.classList.remove('is-scrolled');
+      if (y < lastY && y > 80) nav.classList.add('is-up'); else nav.classList.remove('is-up');
+      lastY = y;
+    }
+
+    window.addEventListener('scroll', () => {
+      updateProgress();
+      updateNav();
+    }, { passive: true });
+    updateProgress();
+    updateNav();
+
+    // ----------------------- chapter dot active ------------------------ //
+    const dots = Array.from(document.querySelectorAll('.nav-dot'));
+    const chapters = Array.from(document.querySelectorAll('.chapter'));
+    const navChip = document.getElementById('navChip');
+    const navChipLabel = document.getElementById('navChipLabel');
+    const chapterLabels = {
+      ch01: '01 · Premise', ch02: '02 · The Data', ch03: '03 · Patterns',
+      ch04: '04 · Evidence', ch05: '05 · Segments', ch06: '06 · Strategy',
+    };
+    const chapterOrder = ['ch01','ch02','ch03','ch04','ch05','ch06'];
+
+    function updateChipFor(id) {
+      if (!navChip || !navChipLabel) return;
+      if (!id || id === 'top') {
+        navChipLabel.textContent = 'Begin · 01';
+        navChip.setAttribute('href', '#ch01');
+        return;
+      }
+      navChipLabel.textContent = chapterLabels[id] || id;
+      // jump to the NEXT chapter on tap so the chip is a forward-only stepper
+      const idx = chapterOrder.indexOf(id);
+      const nextId = idx >= 0 && idx < chapterOrder.length - 1 ? chapterOrder[idx + 1] : 'next';
+      navChip.setAttribute('href', '#' + nextId);
+    }
+    updateChipFor('top');
+
+    if ('IntersectionObserver' in window) {
+      // Track which chapters are currently in the "active band" of the viewport.
+      // When the set is empty (user is on the hero, or scrolled past everything),
+      // no chapter should be highlighted in the rail — the rail goes quiet.
+      const visibleChapters = new Set();
+      const chObs = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) visibleChapters.add(e.target.id);
+          else                  visibleChapters.delete(e.target.id);
+        });
+        // pick the first visible chapter in DOM order (handles two-in-view at once)
+        const activeId = chapterOrder.find((id) => visibleChapters.has(id)) || null;
+        dots.forEach((d) => {
+          d.classList.toggle('is-active', !!activeId && d.dataset.chapter === activeId);
+        });
+        updateChipFor(activeId || 'top');
+      }, { rootMargin: '-40% 0px -40% 0px', threshold: 0 });
+      chapters.forEach((c) => chObs.observe(c));
+    }
+
+    // ------------------------ reveal observer -------------------------- //
+    if ('IntersectionObserver' in window) {
+      const revealObs = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add('is-in');
+            revealObs.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+      document.querySelectorAll('.reveal').forEach((el) => revealObs.observe(el));
+
+      const heroObs = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add('is-in');
+            heroObs.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.3 });
+      document.querySelectorAll('[data-hero]').forEach((el) => heroObs.observe(el));
+
+      const transObs = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add('is-in');
+            transObs.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.6 });
+      document.querySelectorAll('.ch-transition').forEach((el) => transObs.observe(el));
+
+      const badgesObs = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add('is-in');
+            badgesObs.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.4 });
+      document.querySelectorAll('[data-badges]').forEach((el) => badgesObs.observe(el));
+    } else {
+      document.querySelectorAll('.reveal, [data-hero], .ch-transition, [data-badges]').forEach((el) => el.classList.add('is-in'));
+    }
+
+    // ---------------------- deck-contents rail hover --------------------- //
+    // Each card has a charcoal ::before layer revealed by a radial-gradient
+    // MASK whose centre is the cursor's entry point. We capture the cursor's
+    // position in card-relative percentages on mouseenter and write them to
+    // --hover-mx / --hover-my. The origin is intentionally NOT updated on
+    // mouseleave, so the collapse animation lands back at the same point the
+    // wave grew from — a clean A→B→A motion, not one that chases the cursor
+    // to its exit. The transform-origin of the gold underline is anchored to
+    // the same point so both effects feel rooted in the same gesture.
+    document.querySelectorAll('.deck-contents .m-rail li').forEach((card) => {
+      card.addEventListener('mouseenter', (e) => {
+        const r = card.getBoundingClientRect();
+        const x = ((e.clientX - r.left) / r.width) * 100;
+        const y = ((e.clientY - r.top) / r.height) * 100;
+        card.style.setProperty('--hover-mx', x.toFixed(2) + '%');
+        card.style.setProperty('--hover-my', y.toFixed(2) + '%');
+      }, { passive: true });
+    });
+
+    // -------------------------- custom cursor -------------------------- //
+    const cursorDot   = document.querySelector('.cursor-dot');
+    const cursorRing  = document.querySelector('.cursor-ring');
+    const cursorLabel = document.querySelector('.cursor-label');
+    const supportsHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+    if (supportsHover && cursorDot && cursorRing) {
+      let mx = window.innerWidth / 2, my = window.innerHeight / 2;
+      let rx = mx, ry = my;
+
+      window.addEventListener('mousemove', (e) => {
+        mx = e.clientX; my = e.clientY;
+        cursorDot.style.transform = `translate(${mx}px, ${my}px) translate(-50%, -50%)`;
+      }, { passive: true });
+
+      function tick() {
+        rx += (mx - rx) * 0.18;
+        ry += (my - ry) * 0.18;
+        cursorRing.style.transform = `translate(${rx}px, ${ry}px) translate(-50%, -50%)`;
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+
+      // Map a hovered element to the contextual label it should show.
+      // Returns either a string (label) or '' (bare hover — small cross grow, no pill).
+      function labelFor(t) {
+        if (!t) return null;
+        // explicit override on any ancestor wins
+        const explicit = t.closest('[data-cursor-label]');
+        if (explicit) return explicit.dataset.cursorLabel;
+
+        if (t.closest('.lb-close, .drawer-close, .overview-close, [aria-label="Close lightbox"], [aria-label="Close drawer"], [aria-label="Close overview"]')) return 'CLOSE';
+        if (t.closest('.lb-prev, .slider-prev, [aria-label*="Previous"]')) return 'PREV';
+        if (t.closest('.lb-next, .slider-next, [aria-label*="Next"]'))     return 'NEXT';
+        if (t.closest('.lb-mini'))                                          return 'JUMP';
+        if (t.closest('.thumb'))                                            return 'OPEN';
+        if (t.closest('.feature-frame:not(.is-static)'))                    return 'OPEN';
+        if (t.closest('.concept-sketch .sketch-frame'))                     return 'OPEN';
+        if (t.closest('.ov-deck .od-thumb'))                                return 'OPEN';
+        if (t.closest('.od-open, .ch-deck-link'))                           return 'VIEW';
+        if (t.closest('.nav-decks, #openOverview'))                         return 'BROWSE';
+        if (t.closest('.insight'))                                          return 'READ';
+        // generic interactive — bare hover (no label, just a small cross grow)
+        if (t.closest('a, button, [data-cursor], .frame, .concept, .method, .badge, .nav-dot')) return '';
+        return null;
+      }
+
+      function setHover(label) {
+        if (label === null) {
+          // not hovering anything interactive — return to resting "+"
+          cursorRing.classList.remove('is-hover', 'is-bare');
+          cursorDot.classList.remove('is-hover', 'is-bare');
+          if (cursorLabel) cursorLabel.textContent = '';
+          return;
+        }
+        if (label === '') {
+          // hover, but no label — just gently grow the cross
+          cursorRing.classList.add('is-hover', 'is-bare');
+          cursorDot.classList.add('is-hover', 'is-bare');
+          if (cursorLabel) cursorLabel.textContent = '';
+          return;
+        }
+        // hover with a label — morph into a pill carrying the word
+        cursorRing.classList.add('is-hover');
+        cursorRing.classList.remove('is-bare');
+        cursorDot.classList.add('is-hover');
+        cursorDot.classList.remove('is-bare');
+        if (cursorLabel && cursorLabel.textContent !== label) cursorLabel.textContent = label;
+      }
+
+      document.addEventListener('mouseover', (e) => setHover(labelFor(e.target)));
+      document.addEventListener('mouseout',  (e) => {
+        // when leaving the element, decide based on the new related target
+        const next = e.relatedTarget;
+        setHover(next ? labelFor(next) : null);
+      });
+
+      document.addEventListener('mouseleave', () => {
+        cursorDot.style.opacity = '0';
+        cursorRing.style.opacity = '0';
+      });
+      document.addEventListener('mouseenter', () => {
+        cursorDot.style.opacity = '';
+        cursorRing.style.opacity = '';
+      });
+    }
+
+    // ---------------------------- drawer ------------------------------- //
+    const drawer = document.getElementById('drawer');
+    const drawerScrim = document.getElementById('drawerScrim');
+    const drawerTrack = document.getElementById('drawerTrack');
+    const drawerClose = document.getElementById('drawerClose');
+    const drawerCh = document.getElementById('drawerCh');
+    const drawerTitle = document.getElementById('drawerTitle');
+    const drawerCount = document.getElementById('drawerCount');
+
+    let currentDeckKey = null;
+
+    function openDrawer(key) {
+      const deck = DECKS[key];
+      if (!deck) return;
+      currentDeckKey = key;
+      drawerCh.textContent = deck.chapter;
+      drawerTitle.innerHTML = deck.title;
+      const visibleSlides = deck.slides.filter((s) => !s.sectionBreak);
+      drawerCount.textContent = visibleSlides.length + ' slides';
+
+      drawerTrack.innerHTML = deck.slides.map((s, idx) => {
+        if (s.sectionBreak) {
+          return `<div class="thumb is-section-break" aria-hidden="true"></div>`;
+        }
+        return `
+          <div class="thumb" data-cursor="hover" tabindex="0" role="button"
+               data-deck-key="${key}" data-slide-idx="${idx}"
+               aria-label="Open slide ${s.n} from ${s.deckLabel}">
+            <img loading="lazy" src="${s.src}" alt="Slide ${s.n} from ${s.deckLabel}" />
+            <span class="t-meta">${String(s.n).padStart(2,'0')}</span>
+            <span class="t-deck">${s.deckLabel}</span>
+          </div>
+        `;
+      }).join('');
+
+      drawer.classList.add('is-open');
+      drawer.setAttribute('aria-hidden', 'false');
+      drawerScrim.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+      drawerTrack.scrollLeft = 0;
+      setTimeout(() => drawerClose.focus(), 320);
+
+      // wire thumb clicks → lightbox
+      drawerTrack.querySelectorAll('.thumb:not(.is-section-break)').forEach((el) => {
+        el.addEventListener('click', () => {
+          openLightbox(el.dataset.deckKey, parseInt(el.dataset.slideIdx, 10));
+        });
+        el.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openLightbox(el.dataset.deckKey, parseInt(el.dataset.slideIdx, 10));
+          }
+        });
+      });
+    }
+
+    function closeDrawer() {
+      drawer.classList.remove('is-open');
+      drawer.setAttribute('aria-hidden', 'true');
+      drawerScrim.classList.remove('is-open');
+      if (!lightbox.classList.contains('is-open')) {
+        document.body.style.overflow = '';
+      }
+    }
+
+    document.querySelectorAll('[data-drawer]').forEach((el) => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        openDrawer(el.getAttribute('data-drawer'));
+      });
+    });
+
+    // ----------------- inline featured slides → lightbox --------------- //
+    // Resolution order: explicit data-chapter override → enclosing <section class="chapter">
+    // → first chapter in DECKS whose sources include the deck slug. This lets a deck (e.g. Deck 06)
+    // appear in multiple chapter drawers without all clicks routing to whichever appears first.
+    document.querySelectorAll('[data-feature]').forEach((el) => {
+      const deckSlug = el.getAttribute('data-deck');
+
+      let chapterKey = el.getAttribute('data-chapter');
+      if (!chapterKey) {
+        const section = el.closest('section.chapter');
+        if (section && DECKS[section.id]) chapterKey = section.id;
+      }
+      if (!chapterKey) {
+        const fallback = Object.entries(DECKS).find(([, d]) => d.sources.includes(deckSlug));
+        if (fallback) chapterKey = fallback[0];
+      }
+      if (!chapterKey || !DECKS[chapterKey]) return;
+
+      const deck = DECKS[chapterKey];
+      if (!deck.sources.includes(deckSlug)) return;
+
+      const trigger = el.querySelector('.feature-frame') || el;
+      trigger.setAttribute('role', 'button');
+      trigger.setAttribute('tabindex', '0');
+      trigger.setAttribute('data-cursor', 'hover');
+      trigger.style.cursor = 'none';
+
+      // Re-read data-slide at click time so inline sliders (which mutate
+      // data-slide on the fly) always open the currently-active slide.
+      const open = () => {
+        const slideN = parseInt(el.getAttribute('data-slide'), 10);
+        const slideIdx = deck.slides.findIndex((s) => !s.sectionBreak && s.deck === deckSlug && s.n === slideN);
+        if (slideIdx < 0) return;
+        openLightbox(chapterKey, slideIdx);
+      };
+      trigger.addEventListener('click', open);
+      trigger.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+      });
+    });
+
+    // -------------------- inline mini-sliders ------------------------- //
+    // A small per-figure carousel for grouping related slides into one frame.
+    // Updates the parent figure's data-slide and caption per active slide,
+    // so clicking the frame still opens the lightbox at the right slide.
+    document.querySelectorAll('[data-slider]').forEach((slider) => {
+      const slides = Array.from(slider.querySelectorAll('.slider-slide'));
+      if (slides.length < 2) return;
+
+      const track = slider.querySelector('.slider-track');
+      const figure = slider.closest('figure');
+      const tagEl  = figure && figure.querySelector('.feature-cap .f-tag');
+      const textEl = figure && figure.querySelector('.feature-cap .f-text');
+      const currentEl = slider.querySelector('[data-current]');
+      const totalEl   = slider.querySelector('[data-total]');
+      if (totalEl) totalEl.textContent = String(slides.length).padStart(2, '0');
+
+      const prev = slider.querySelector('.slider-prev');
+      const next = slider.querySelector('.slider-next');
+      let active = 0;
+
+      const update = () => {
+        track.style.transform = `translateX(${-active * 100}%)`;
+        slides.forEach((s, i) => s.setAttribute('aria-hidden', String(i !== active)));
+        const cur = slides[active];
+        if (tagEl  && cur.dataset.capTag)  tagEl.innerHTML  = cur.dataset.capTag;
+        if (textEl && cur.dataset.capText) textEl.innerHTML = cur.dataset.capText;
+        if (currentEl) currentEl.textContent = String(active + 1).padStart(2, '0');
+        if (figure && cur.dataset.slideNum) figure.setAttribute('data-slide', cur.dataset.slideNum);
+        slider.setAttribute('data-active', String(active));
+      };
+
+      const go = (dir) => { active = (active + dir + slides.length) % slides.length; update(); };
+
+      const onBtn = (dir) => (e) => { e.stopPropagation(); e.preventDefault(); go(dir); };
+      prev.addEventListener('click', onBtn(-1));
+      next.addEventListener('click', onBtn(1));
+      const onBtnKey = (dir) => (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); go(dir); }
+      };
+      prev.addEventListener('keydown', onBtnKey(-1));
+      next.addEventListener('keydown', onBtnKey(1));
+
+      // Arrow keys when the frame itself has focus (but not when an inner button does)
+      slider.addEventListener('keydown', (e) => {
+        if (e.target === prev || e.target === next) return;
+        if (e.key === 'ArrowLeft')  { e.preventDefault(); go(-1); }
+        if (e.key === 'ArrowRight') { e.preventDefault(); go(1);  }
+      });
+
+      update();
+    });
+
+    drawerClose.addEventListener('click', closeDrawer);
+    drawerScrim.addEventListener('click', closeDrawer);
+
+    // ---------------------------- lightbox ----------------------------- //
+    const lightbox = document.getElementById('lightbox');
+    const lbImg    = document.getElementById('lbImg');
+    const lbCh     = document.getElementById('lbCh');
+    const lbPos    = document.getElementById('lbPos');
+    const lbDeck   = document.getElementById('lbDeck');
+    const lbClose  = document.getElementById('lbClose');
+    const lbPrev   = document.getElementById('lbPrev');
+    const lbNext   = document.getElementById('lbNext');
+    const lbFilmstripTrack = document.getElementById('lbFilmstripTrack');
+
+    let lbDeckKey = null;
+    let lbVisibleSlides = [];
+    let lbIdx = 0;
+
+    // Source decks — virtual deck entries for each ORIGINAL PDF, so the overview can show
+    // the real source material end-to-end without double-counting slides shared across chapters.
+    const SOURCE_DECKS = {};
+    Object.entries(SOURCES).forEach(([key, meta]) => {
+      SOURCE_DECKS[`src:${key}`] = {
+        chapter: `Source Deck · ${meta.label}`,
+        title: meta.label,
+        sources: [key],
+        slides: Array.from({ length: meta.count }, (_, i) => ({
+          src: deckPath(key, i + 1),
+          n: i + 1,
+          deck: key,
+          deckLabel: meta.label
+        }))
+      };
+    });
+
+    // Reverse map: which chapters feature each source deck (used for the "Featured in…" label).
+    const SOURCE_TO_CHAPTERS = {};
+    Object.entries(DECKS).forEach(([chKey, d]) => {
+      d.sources.forEach((srcKey) => {
+        if (!SOURCE_TO_CHAPTERS[srcKey]) SOURCE_TO_CHAPTERS[srcKey] = [];
+        if (!SOURCE_TO_CHAPTERS[srcKey].includes(chKey)) SOURCE_TO_CHAPTERS[srcKey].push(chKey);
+      });
+    });
+
+    function openLightbox(deckKey, slideIdxInDeck) {
+      const deck = DECKS[deckKey] || SOURCE_DECKS[deckKey];
+      if (!deck) return;
+      lbDeckKey = deckKey;
+      lbVisibleSlides = deck.slides.filter((s) => !s.sectionBreak);
+      const target = deck.slides[slideIdxInDeck];
+      lbIdx = Math.max(0, lbVisibleSlides.findIndex((s) => s === target));
+      lbCh.textContent = deck.chapter;
+      buildFilmstrip();
+      renderLightbox(true);
+      lightbox.classList.add('is-open');
+      lightbox.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => lbClose.focus(), 200);
+      // Once the lightbox transition has settled, re-center the active mini (initial centering can be dropped while the panel is still fading in).
+      setTimeout(() => centerActiveMini(false), 340);
+    }
+
+    function buildFilmstrip() {
+      if (!lbVisibleSlides.length) { lbFilmstripTrack.innerHTML = ''; return; }
+      lbFilmstripTrack.innerHTML = lbVisibleSlides.map((s, idx) => `
+        <button type="button" class="lb-mini" data-mini-idx="${idx}" data-cursor="hover" aria-label="Jump to slide ${idx + 1} of ${lbVisibleSlides.length}">
+          <span class="lb-mini-num">${String(idx + 1).padStart(2, '0')}</span>
+          <img src="${s.src}" alt="" loading="lazy" decoding="async" />
+        </button>
+      `).join('');
+      lbFilmstripTrack.querySelectorAll('.lb-mini').forEach((el) => {
+        el.addEventListener('click', () => {
+          lbIdx = parseInt(el.dataset.miniIdx, 10);
+          renderLightbox();
+        });
+      });
+    }
+
+    function centerActiveMini(smooth) {
+      const active = lbFilmstripTrack.querySelector('.lb-mini.is-active');
+      if (!active) return;
+      const trackRect  = lbFilmstripTrack.getBoundingClientRect();
+      const activeRect = active.getBoundingClientRect();
+      const offsetWithinTrack = (activeRect.left - trackRect.left) + lbFilmstripTrack.scrollLeft;
+      const targetScroll = offsetWithinTrack - (trackRect.width / 2) + (activeRect.width / 2);
+      lbFilmstripTrack.scrollTo({ left: Math.max(0, targetScroll), behavior: smooth ? 'smooth' : 'auto' });
+    }
+
+    function renderLightbox(skipCenter) {
+      const s = lbVisibleSlides[lbIdx];
+      if (!s) return;
+      lbImg.src = s.src;
+      lbImg.alt = `Slide ${s.n} from ${s.deckLabel}`;
+      lbPos.textContent = `Slide ${lbIdx + 1} of ${lbVisibleSlides.length}`;
+      lbDeck.textContent = `Source · ${s.deckLabel}`;
+      lbFilmstripTrack.querySelectorAll('.lb-mini').forEach((el, i) => {
+        el.classList.toggle('is-active', i === lbIdx);
+      });
+      if (!skipCenter) centerActiveMini(true);
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove('is-open');
+      lightbox.setAttribute('aria-hidden', 'true');
+      // restore body scroll only if drawer also closed
+      if (!drawer.classList.contains('is-open')) {
+        document.body.style.overflow = '';
+      }
+    }
+
+    function lbStep(d) {
+      if (!lbVisibleSlides.length) return;
+      lbIdx = (lbIdx + d + lbVisibleSlides.length) % lbVisibleSlides.length;
+      renderLightbox();
+    }
+
+    lbClose.addEventListener('click', closeLightbox);
+    lbPrev .addEventListener('click', () => lbStep(-1));
+    lbNext .addEventListener('click', () => lbStep( 1));
+    lightbox.addEventListener('click', (e) => {
+      // click outside the image closes
+      if (e.target === lightbox || e.target.classList.contains('lb-stage')) {
+        closeLightbox();
+      }
+    });
+
+    // ----------------- overview (all decks at once) --------------------- //
+    const overview = document.getElementById('overview');
+    const overviewGrid = document.getElementById('overviewGrid');
+    const overviewClose = document.getElementById('overviewClose');
+    const openOverviewBtn = document.getElementById('openOverview');
+
+    function buildOverview() {
+      const sourceEntries = Object.entries(SOURCES);
+      const totalDecks = sourceEntries.length;
+      const totalSlides = sourceEntries.reduce((acc, [, s]) => acc + s.count, 0);
+
+      // Friendly chapter labels used in the "Featured in…" subtitle of each deck row.
+      const CHAPTER_LABELS = {
+        ch01: 'Chapter 01 · Premise',
+        ch02: 'Chapter 02 · The Data',
+        ch03: 'Chapter 03 · Patterns',
+        ch04: 'Chapter 04 · Evidence',
+        ch05: 'Chapter 05 · Segments',
+        ch06: 'Chapter 06 · Strategy',
+      };
+
+      const intro = `
+        <div class="overview-intro">
+          <span class="ov-eyebrow">Full deck &middot; ${totalDecks} source deck &middot; ${totalSlides} slides</span>
+          <h2>The original deck, in full.</h2>
+          <p>This is the complete source presentation, end-to-end &mdash; the same file the team submitted. The narrative chapters pull and re-sequence slides from it; here they appear in their original order.</p>
+          <span class="ov-scroll-hint">34 slides &middot; scroll to browse</span>
+        </div>
+      `;
+
+      const decks = sourceEntries.map(([srcKey, meta], i) => {
+        const num = String(i + 1).padStart(2, '0');
+        const chapters = SOURCE_TO_CHAPTERS[srcKey] || [];
+        const chapterLabels = chapters
+          .map((chKey) => CHAPTER_LABELS[chKey] || chKey)
+          .join('  &middot;  ');
+        const featuredText = chapters.length
+          ? `Featured in &middot; ${chapterLabels}`
+          : 'Source PDF';
+        const thumbs = Array.from({ length: meta.count }, (_, j) => `
+            <button type="button" class="od-thumb" data-overview-thumb data-deck-key="src:${srcKey}" data-slide-orig-idx="${j}" data-cursor="hover" aria-label="Slide ${j + 1} of ${meta.count} &mdash; ${meta.label}">
+              <span class="od-thumb-num">${String(j + 1).padStart(2, '0')}</span>
+              <img loading="lazy" decoding="async" src="${deckPath(srcKey, j + 1)}" alt="" />
+            </button>
+        `).join('');
+
+        return `
+          <article class="ov-deck" data-ov-source="${srcKey}">
+            <div class="ov-deck-grid">
+              <div class="ov-deck-info">
+                <span class="od-tag">Deck ${num} &middot; ${meta.count} slides</span>
+                <div class="od-num">${num}</div>
+                <h3 class="od-title">${meta.label}</h3>
+                <span class="od-source">${featuredText}</span>
+                <span class="od-pdf mono">Original PDF &middot; Quantitative Market Study</span>
+                <button type="button" class="od-open" data-overview-open-deck="src:${srcKey}" data-cursor="hover">
+                  <span>Open deck</span>
+                  <span class="arrow" aria-hidden="true">→</span>
+                </button>
+              </div>
+              <div class="ov-strip-wrap">
+                <div class="ov-strip" tabindex="0" aria-label="${meta.label} — every slide, click any to open">
+                  ${thumbs}
+                </div>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join('');
+
+      overviewGrid.innerHTML = intro + decks;
+
+      // "Open deck" pill → open the lightbox at slide 1 of this source deck;
+      // recruiter can then flip through every slide via the filmstrip rail at the bottom.
+      overviewGrid.querySelectorAll('[data-overview-open-deck]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const key = btn.getAttribute('data-overview-open-deck');
+          closeOverview();
+          setTimeout(() => openLightbox(key, 0), 320);
+        });
+      });
+
+      // Individual thumb → close overview, then open lightbox at that slide.
+      overviewGrid.querySelectorAll('[data-overview-thumb]').forEach((thumb) => {
+        thumb.addEventListener('click', () => {
+          const key = thumb.getAttribute('data-deck-key');
+          const origIdx = parseInt(thumb.getAttribute('data-slide-orig-idx'), 10);
+          closeOverview();
+          setTimeout(() => openLightbox(key, origIdx), 320);
+        });
+      });
+    }
+
+    function openOverview() {
+      buildOverview();
+      overview.classList.add('is-open');
+      overview.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => overviewClose.focus(), 320);
+    }
+    function closeOverview() {
+      overview.classList.remove('is-open');
+      overview.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    openOverviewBtn.addEventListener('click', openOverview);
+    const openOverviewClosing = document.getElementById('openOverviewClosing');
+    if (openOverviewClosing) openOverviewClosing.addEventListener('click', openOverview);
+    overviewClose.addEventListener('click', closeOverview);
+
+    // ----------------------------- keys -------------------------------- //
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (lightbox.classList.contains('is-open')) { closeLightbox(); return; }
+        if (drawer.classList.contains('is-open'))   { closeDrawer();   return; }
+        if (overview.classList.contains('is-open')) { closeOverview(); return; }
+      }
+      if (lightbox.classList.contains('is-open')) {
+        if (e.key === 'ArrowRight') { e.preventDefault(); lbStep( 1); }
+        if (e.key === 'ArrowLeft')  { e.preventDefault(); lbStep(-1); }
+      }
+    });
+
+    // ---------------------- smooth scroll for anchors ------------------ //
+    document.querySelectorAll('a[href^="#"]').forEach((a) => {
+      a.addEventListener('click', (e) => {
+        const href = a.getAttribute('href');
+        if (!href || href === '#') return;
+        const target = document.querySelector(href);
+        if (!target) return;
+        e.preventDefault();
+        const top = target.getBoundingClientRect().top + window.scrollY - 8;
+        window.scrollTo({ top, behavior: 'smooth' });
+      });
+    });
+  })();
+  </script>
+</body>
+</html>
